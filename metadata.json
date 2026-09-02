@@ -1,0 +1,6 @@
+{
+  "name": "SmartMedChart - Secure Clinical Portal",
+  "description": "Secure Clinical Portal and inpatient eMAR drug chart system with role-based authentication, 5-rights verification, and clinical safety alerts.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
