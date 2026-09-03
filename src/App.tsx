@@ -5,7 +5,7 @@ import {
   INITIAL_CLINICAL_TASKS,
   INITIAL_MED_TASKS,
 } from './data/clinicalData';
-import { PatientProfile, PrescriptionItem, StatAlertItem, ClinicalTaskItem, MedicationAdminTask } from './types/dashboard';
+import { PatientProfile, PrescriptionItem, StatAlertItem, ClinicalTaskItem, MedicationAdminTask, EmergencyContact } from './types/dashboard';
 import { ClinicalStaff } from './types/medication';
 import { CLINICAL_STAFF, INITIAL_MEDICATIONS, INITIAL_ADMINISTRATION_LOGS } from './data/mockData';
 
@@ -322,35 +322,39 @@ const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Char
           </span>
         </div>
 
-        {/* Header Right Actions: Quick Safety Alert Demo, Notification Bell, User Avatar */}
+        {/* Header Right Actions */}
         <div className="flex items-center gap-3 sm:gap-4">
           
-          {/* Pharmacy Portal Direct Shortcut Button */}
-          <button
-            onClick={() => {
-              setActiveTab('Pharmacy');
-              setIsPrescribing(false);
-            }}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-              activeTab === 'Pharmacy'
-                ? 'bg-[#00687a] text-white shadow-xs'
-                : 'bg-teal-50 hover:bg-teal-100 border border-teal-200 text-[#00687a]'
-            }`}
-            title="Clinical Pharmacy Queue & Dispensing Portal"
-          >
-            <span className="material-symbols-outlined text-[16px]">local_pharmacy</span>
-            <span className="hidden sm:inline">Pharmacy Queue</span>
-          </button>
+          {/* Pharmacy Portal Direct Shortcut Button - Only for clinical staff */}
+          {currentStaff.role !== 'PATIENT' && (
+            <button
+              onClick={() => {
+                setActiveTab('Pharmacy');
+                setIsPrescribing(false);
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+                activeTab === 'Pharmacy'
+                  ? 'bg-[#00687a] text-white shadow-xs'
+                  : 'bg-teal-50 hover:bg-teal-100 border border-teal-200 text-[#00687a]'
+              }`}
+              title="Clinical Pharmacy Queue & Dispensing Portal"
+            >
+              <span className="material-symbols-outlined text-[16px]">local_pharmacy</span>
+              <span className="hidden sm:inline">Pharmacy Queue</span>
+            </button>
+          )}
 
-          {/* Quick Demo Safety Alert Trigger */}
-          <button
-            onClick={() => setIsSafetyAlertOpen(true)}
-            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer"
-            title="Demonstrate Critical Safety Alert"
-          >
-            <span className="material-symbols-outlined text-[16px] text-rose-600">notification_important</span>
-            <span>Trigger Alert Demo</span>
-          </button>
+          {/* Quick Demo Safety Alert Trigger - Only for clinical staff */}
+          {currentStaff.role !== 'PATIENT' && (
+            <button
+              onClick={() => setIsSafetyAlertOpen(true)}
+              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer"
+              title="Demonstrate Critical Safety Alert"
+            >
+              <span className="material-symbols-outlined text-[16px] text-rose-600">notification_important</span>
+              <span>Trigger Alert Demo</span>
+            </button>
+          )}
 
           {/* Notification Bell */}
           <button
@@ -429,9 +433,17 @@ const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Char
               />
             )}
 
-            {/* VIEW 1: Home Dashboard (Renders Physician Dashboard for Doctors or Medication Tasks for Nurses) */}
+            {/* VIEW 1: Home Dashboard */}
             {activeTab === 'Home' && currentStaff.role !== 'PHARMACIST' && (
-              currentStaff.role === 'NURSE' || currentStaff.role === 'CHARGE_NURSE' ? (
+              currentStaff.role === 'PATIENT' ? (
+                <PatientDetailView
+                  patient={currentPatient}
+                  onPrescribeMedicine={() => setIsPrescribing(true)}
+                  onAddClinicalNote={(pat) => setClinicalNoteModal(pat)}
+                  onAdministerPrescription={handleAdministerPrescription}
+                  onViewAllPrescriptions={() => setShowFullDrugChart(!showFullDrugChart)}
+                />
+              ) : currentStaff.role === 'NURSE' || currentStaff.role === 'CHARGE_NURSE' ? (
                 <MedicationTasksView
                   tasks={medTasks}
                   onAdministerTask={handleAdministerMedTask}
@@ -455,37 +467,39 @@ const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Char
             {/* VIEW 2: Patient Detail */}
             {activeTab === 'Patients' && (
               <div className="space-y-6">
-                {/* Patient Selector Strip */}
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                  {patients.map((pat) => (
-                    <button
-                      key={pat.id}
-                      onClick={() => setSelectedPatientId(pat.id)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-2 border cursor-pointer ${
-                        selectedPatientId === pat.id
-                          ? 'bg-[#003d9b] text-white border-[#003d9b] shadow-xs'
-                          : 'bg-white text-[#475569] border-[#e2e8f0] hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>{pat.name}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                        selectedPatientId === pat.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {pat.roomBed}
-                      </span>
-                    </button>
-                  ))}
+                {/* Patient Selector Strip - Only for doctors and nurses */}
+                {currentStaff.role !== 'PATIENT' && (
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                    {patients.map((pat) => (
+                      <button
+                        key={pat.id}
+                        onClick={() => setSelectedPatientId(pat.id)}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-2 border cursor-pointer ${
+                          selectedPatientId === pat.id
+                            ? 'bg-[#003d9b] text-white border-[#003d9b] shadow-xs'
+                            : 'bg-white text-[#475569] border-[#e2e8f0] hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{pat.name}</span>
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                          selectedPatientId === pat.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {pat.roomBed}
+                        </span>
+                      </button>
+                    ))}
 
-                  <button
-                    type="button"
-                    onClick={() => setIsRegisterPatientOpen(true)}
-                    className="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-teal-50 text-[#00687a] border border-teal-200 hover:bg-teal-100 active:scale-95 transition flex items-center gap-1.5 cursor-pointer shrink-0"
-                    title="Admit / Register New Patient"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">person_add</span>
-                    <span>Add Patient</span>
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsRegisterPatientOpen(true)}
+                      className="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-teal-50 text-[#00687a] border border-teal-200 hover:bg-teal-100 active:scale-95 transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                      title="Admit / Register New Patient"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">person_add</span>
+                      <span>Add Patient</span>
+                    </button>
+                  </div>
+                )}
 
                 <PatientDetailView
                   patient={currentPatient}
@@ -544,55 +558,275 @@ const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Char
               )
             )}
 
-            {/* VIEW 5: Clinician Profile & Workstation Controls */}
+            {/* VIEW 5: Profile & Workstation Controls */}
             {activeTab === 'Profile' && (
-              <div className="max-w-xl mx-auto space-y-6 pb-20">
-                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e2e8f0] shadow-xs text-center space-y-4">
-                  <img
-                    src={staffAvatar}
-                    alt={currentStaff.name}
-                    className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-[#003d9b]/20 shadow-sm"
-                  />
-                  <div>
-                    <h2 className="text-2xl font-bold text-[#0f172a]">{currentStaff.name}</h2>
-                    <p className="text-xs text-[#64748b] mt-0.5">
-                      {currentStaff.role === 'PATIENT'
-                        ? 'Inpatient • Ward 3, Bed 12'
-                        : currentStaff.role === 'NURSE' || currentStaff.role === 'CHARGE_NURSE'
-                        ? 'Staff Nurse • Ward 4B eMAR'
-                        : currentStaff.role === 'PHARMACIST'
-                        ? 'Clinical Pharmacist • Dispensary & Review'
-                        : 'Staff Physician • Internal Medicine'}
-                    </p>
-                    <p className="text-xs font-mono text-[#003d9b] mt-1 font-semibold">
-                      {currentStaff.role === 'PATIENT' ? 'UHID' : 'Badge'}: {currentStaff.badgeNumber} • {currentStaff.department || 'Ward 4B'}
-                    </p>
-                  </div>
+              <div className="max-w-2xl mx-auto space-y-6 pb-24 animate-in fade-in duration-200">
+                {currentStaff.role === 'PATIENT' ? (
+                  <>
+                    {/* Patient Inpatient Demographic Overview Card */}
+                    <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/80 shadow-xs space-y-6">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+                        <img
+                          src={currentPatient.avatarUrl || staffAvatar}
+                          alt={currentPatient.name}
+                          className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl object-cover border-4 border-[#003d9b]/15 shadow-md shrink-0"
+                        />
+                        <div className="space-y-1.5 flex-1">
+                          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                            <h2 className="text-2xl sm:text-3xl font-black text-[#0f172a]">{currentPatient.name}</h2>
+                            <span className="px-2.5 py-0.5 bg-blue-50 text-[#003d9b] border border-blue-200 rounded-full text-xs font-bold font-mono">
+                              {currentPatient.uhid}
+                            </span>
+                          </div>
+                          <p className="text-xs sm:text-sm font-semibold text-[#003d9b] flex items-center justify-center sm:justify-start gap-1">
+                            <span className="material-symbols-outlined text-[16px]">hotel</span>
+                            <span>Inpatient • {currentPatient.ward}, {currentPatient.roomBed}</span>
+                          </p>
+                          <p className="text-xs text-slate-500 font-medium">
+                            DOB: {currentPatient.dob} ({currentPatient.age}y • {currentPatient.gender}) • Admitted: {currentPatient.admittedDate}
+                          </p>
+                          <p className="text-xs text-slate-600 font-semibold pt-1">
+                            Diagnosis: <span className="text-slate-900">{currentPatient.primaryDiagnosis}</span>
+                          </p>
+                        </div>
+                      </div>
 
-                  <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 text-left">
-                    <div className="bg-slate-50 p-3 rounded-xl">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Department</span>
-                      <p className="text-xs font-bold text-slate-800">{currentStaff.department || 'Ward 4B'}</p>
-                    </div>
-                    <div className="bg-slate-50 p-3 rounded-xl">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase">Shift Status</span>
-                      <p className="text-xs font-bold text-emerald-600">Active (Ward 4B)</p>
-                    </div>
-                  </div>
+                      {/* Clinical Parameters Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-4 border-t border-slate-100 text-xs">
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/60">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Weight</span>
+                          <span className="text-sm font-extrabold text-[#0f172a] mt-0.5 block">{currentPatient.weight || '78 kg'}</span>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/60">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Height</span>
+                          <span className="text-sm font-extrabold text-[#0f172a] mt-0.5 block">{currentPatient.height || '175 cm'}</span>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/60">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">BMI</span>
+                          <span className="text-sm font-extrabold text-emerald-700 mt-0.5 block">{currentPatient.bmi || '25.5'} (Normal)</span>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/60">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Blood Group</span>
+                          <span className="text-sm font-extrabold text-rose-700 mt-0.5 block">{currentPatient.bloodGroup || 'B+'}</span>
+                        </div>
+                      </div>
 
-                  <div className="space-y-2 pt-4">
-                    <button
-                      onClick={() => {
-                        setIsAuthenticated(false);
-                        showToast('Workstation locked. Session ended.', 'INFO');
+                      {/* Allergies Notice */}
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-rose-600 text-[18px]">verified_user</span>
+                          <span className="font-bold text-slate-700">Documented Allergies:</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {currentPatient.allergies && currentPatient.allergies.length > 0 ? (
+                            currentPatient.allergies.map((a, i) => (
+                              <span key={i} className="px-2.5 py-0.5 bg-rose-50 border border-rose-200 text-rose-800 rounded-full font-bold text-xs">
+                                ⚠️ {a.allergen} ({a.reaction})
+                              </span>
+                            ))
+                          ) : (
+                            <span className="px-2.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-full font-bold text-xs">
+                              No Known Drug Allergies (NKDA)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* FEATURE 1: Emergency Family Details & ICE Contacts */}
+                    <EmergencyFamilyDetailsCard
+                      patient={currentPatient}
+                      onUpdateContacts={(updated) => {
+                        setPatients((prev) =>
+                          prev.map((p) => (p.id === currentPatient.id ? { ...p, emergencyContacts: updated } : p))
+                        );
                       }}
-                      className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-[18px]">lock</span>
-                      <span>Lock Workstation &amp; Logout</span>
-                    </button>
+                      onShowToast={showToast}
+                    />
+
+                    {/* FEATURE 2: Previous Prescribed Medication History */}
+                    <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs space-y-5">
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-9 h-9 rounded-xl bg-[#003d9b]/10 text-[#003d9b] flex items-center justify-center shrink-0">
+                            <span className="material-symbols-outlined text-[20px]">history_edu</span>
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-extrabold text-[#0f172a] tracking-tight">
+                              Previous Prescribed Medication History
+                            </h3>
+                            <p className="text-xs text-slate-500">
+                              Past medication courses, clinical indications, and prescribing physician records
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-full shrink-0">
+                          {currentPatient.pastPrescriptions?.length || 0} Records
+                        </span>
+                      </div>
+
+                      {/* Past Prescriptions List */}
+                      <div className="space-y-3">
+                        {currentPatient.pastPrescriptions && currentPatient.pastPrescriptions.length > 0 ? (
+                          currentPatient.pastPrescriptions.map((rx) => (
+                            <div
+                              key={rx.id}
+                              className="bg-slate-50/80 rounded-2xl p-4 sm:p-5 border border-slate-200/80 space-y-3 hover:border-blue-300 transition"
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                <div>
+                                  <h4 className="text-base font-extrabold text-[#0f172a]">{rx.drugName}</h4>
+                                  <p className="text-xs font-semibold text-slate-600">
+                                    {rx.dose} • {rx.route} • {rx.frequency}
+                                  </p>
+                                </div>
+                                <span className={`px-2.5 py-1 rounded-full text-xs font-bold w-fit ${
+                                  rx.outcome === 'Completed Course' || rx.outcome === 'Resolved'
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : rx.outcome === 'Tapered Off'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : 'bg-amber-100 text-amber-800'
+                                }`}>
+                                  {rx.outcome}
+                                </span>
+                              </div>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-2 border-t border-slate-200 text-slate-600">
+                                <div>
+                                  <span className="font-bold text-slate-700">Indication:</span> {rx.indication}
+                                </div>
+                                <div>
+                                  <span className="font-bold text-slate-700">Treatment Period:</span> {rx.period}
+                                </div>
+                                <div>
+                                  <span className="font-bold text-slate-700">Prescribed By:</span> {rx.prescribedBy}
+                                </div>
+                                {rx.notes && (
+                                  <div className="sm:col-span-2 text-[11px] text-slate-500 italic">
+                                    "{rx.notes}"
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="p-6 text-center text-xs text-slate-500 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                            No prior prescription history recorded for this patient.
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Past Medical & Surgical History */}
+                    {currentPatient.medicalHistory && currentPatient.medicalHistory.length > 0 && (
+                      <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200/80 shadow-xs space-y-4">
+                        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+                          <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-700 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[18px]">medical_services</span>
+                          </div>
+                          <h3 className="text-base font-extrabold text-[#0f172a]">
+                            Medical &amp; Surgical Background
+                          </h3>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {currentPatient.medicalHistory.map((item) => (
+                            <div key={item.id} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/70 text-xs space-y-1">
+                              <div className="flex items-center justify-between">
+                                <strong className="text-slate-900 font-bold">{item.condition}</strong>
+                                <span className="text-[10px] font-mono px-2 py-0.5 bg-white rounded border border-slate-200 text-slate-600">{item.year}</span>
+                              </div>
+                              <p className="text-slate-500 text-[11px] leading-relaxed">{item.notes}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Digital Inpatient Wristband QR */}
+                    <div className="bg-gradient-to-r from-[#002b70] to-[#003d9b] rounded-3xl p-6 text-white shadow-lg space-y-4 text-center">
+                      <span className="material-symbols-outlined text-3xl text-blue-200">qr_code_2</span>
+                      <div>
+                        <h4 className="text-base font-bold">Inpatient Digital Wristband</h4>
+                        <p className="text-xs text-blue-100/80 mt-0.5">
+                          Unique identification code for bedside nurse 5-rights verification
+                        </p>
+                      </div>
+                      <div className="bg-white p-3 rounded-2xl w-fit mx-auto shadow-md">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(
+                            currentPatient.qrCode || `SMARTMED://PATIENT/${currentPatient.uhid}`
+                          )}`}
+                          alt="Patient QR Code"
+                          className="w-24 h-24 mx-auto"
+                        />
+                      </div>
+                      <span className="text-[11px] font-mono text-blue-200 font-bold block">
+                        {currentPatient.qrCode || `SMARTMED://PATIENT/${currentPatient.uhid}`}
+                      </span>
+                    </div>
+
+                    {/* Patient Exit / Sign Out Button */}
+                    <div className="pt-2">
+                      <button
+                        onClick={() => {
+                          setIsAuthenticated(false);
+                          showToast('Patient session ended securely.', 'INFO');
+                        }}
+                        className="w-full py-3.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">logout</span>
+                        <span>Sign Out of Patient Portal</span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  /* Clinician Staff Profile & Workstation Controls */
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e2e8f0] shadow-xs text-center space-y-4">
+                    <img
+                      src={staffAvatar}
+                      alt={currentStaff.name}
+                      className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-[#003d9b]/20 shadow-sm"
+                    />
+                    <div>
+                      <h2 className="text-2xl font-bold text-[#0f172a]">{currentStaff.name}</h2>
+                      <p className="text-xs text-[#64748b] mt-0.5">
+                        {currentStaff.role === 'NURSE' || currentStaff.role === 'CHARGE_NURSE'
+                          ? 'Staff Nurse • Ward 4B eMAR'
+                          : currentStaff.role === 'PHARMACIST'
+                          ? 'Clinical Pharmacist • Dispensary & Review'
+                          : 'Staff Physician • Internal Medicine'}
+                      </p>
+                      <p className="text-xs font-mono text-[#003d9b] mt-1 font-semibold">
+                        Badge: {currentStaff.badgeNumber} • {currentStaff.department || 'Ward 4B'}
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 text-left">
+                      <div className="bg-slate-50 p-3 rounded-xl">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Department</span>
+                        <p className="text-xs font-bold text-slate-800">{currentStaff.department || 'Ward 4B'}</p>
+                      </div>
+                      <div className="bg-slate-50 p-3 rounded-xl">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase">Shift Status</span>
+                        <p className="text-xs font-bold text-emerald-600">Active (Ward 4B)</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-4">
+                      <button
+                        onClick={() => {
+                          setIsAuthenticated(false);
+                          showToast('Workstation locked. Session ended.', 'INFO');
+                        }}
+                        className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-[18px]">lock</span>
+                        <span>Lock Workstation &amp; Logout</span>
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </>
@@ -602,7 +836,37 @@ const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Char
 
       {/* Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e2e8f0] px-4 py-2 flex items-center justify-around shadow-lg">
-        {currentStaff.role === 'PHARMACIST' ? (
+        {currentStaff.role === 'PATIENT' ? (
+          <>
+            <button
+              onClick={() => {
+                setActiveTab('Home');
+                setIsPrescribing(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+                (activeTab === 'Home' || activeTab === 'Patients') && !isPrescribing
+                  ? 'text-[#003d9b]'
+                  : 'text-[#64748b] hover:text-[#003d9b]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">medical_information</span>
+              <span className="text-[11px] font-bold">My Health Record</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('Profile');
+                setIsPrescribing(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+                activeTab === 'Profile' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">person</span>
+              <span className="text-[11px] font-bold">Profile &amp; QR</span>
+            </button>
+          </>
+        ) : currentStaff.role === 'PHARMACIST' ? (
           <>
             <button
               onClick={() => {
