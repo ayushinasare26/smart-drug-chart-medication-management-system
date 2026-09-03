@@ -26,6 +26,9 @@ export const PharmacistPortalView: React.FC<PharmacistPortalViewProps> = ({
   const [formularyStock, setFormularyStock] = useState<FormularyItem[]>(INITIAL_FORMULARY_STOCK);
   const [selectedInventoryCategory, setSelectedInventoryCategory] = useState<string>('ALL');
 
+  // Full Patient Drug Chart Modal State
+  const [selectedPatientForChart, setSelectedPatientForChart] = useState<PatientProfile | null>(null);
+
   // Clarification Modal State
   const [clarifyingItem, setClarifyingItem] = useState<{ patientId: string; rx: PrescriptionItem; patientName: string } | null>(null);
   const [clarificationReason, setClarificationReason] = useState('');
@@ -384,10 +387,14 @@ export const PharmacistPortalView: React.FC<PharmacistPortalViewProps> = ({
                       <div className="flex items-center gap-2 flex-wrap">
                         <button
                           type="button"
-                          onClick={() => onOpenDrugChart(patient.id)}
-                          className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-300 text-slate-700 hover:bg-slate-100 transition cursor-pointer flex items-center gap-1"
+                          onClick={() => {
+                            const freshPatient = patients.find((p) => p.id === patient.id) || patient;
+                            setSelectedPatientForChart(freshPatient);
+                          }}
+                          className="px-3 py-2 rounded-xl text-xs font-bold border border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-[#003d9b] hover:text-[#003d9b] transition cursor-pointer flex items-center gap-1 shadow-xs"
+                          title="Open Complete Inpatient Drug Chart & eMAR for this patient"
                         >
-                          <span className="material-symbols-outlined text-[16px]">assignment</span>
+                          <span className="material-symbols-outlined text-[16px] text-[#003d9b]">assignment</span>
                           <span>Full Chart</span>
                         </button>
 
@@ -555,7 +562,7 @@ export const PharmacistPortalView: React.FC<PharmacistPortalViewProps> = ({
               </div>
               <button
                 onClick={() => setClarifyingItem(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
@@ -590,7 +597,7 @@ export const PharmacistPortalView: React.FC<PharmacistPortalViewProps> = ({
               <button
                 type="button"
                 onClick={() => setClarifyingItem(null)}
-                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
               >
                 Cancel
               </button>
@@ -598,11 +605,315 @@ export const PharmacistPortalView: React.FC<PharmacistPortalViewProps> = ({
                 type="button"
                 onClick={handleSendClarification}
                 disabled={!clarificationReason.trim()}
-                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold rounded-xl shadow-xs disabled:opacity-50"
+                className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-extrabold rounded-xl shadow-xs disabled:opacity-50 cursor-pointer"
               >
                 Send Clarification to Prescriber
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* FULL INPATIENT DRUG CHART MODAL (eMAR Grid & Complete Clinical Medication Record) */}
+      {selectedPatientForChart && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-5xl w-full max-h-[92vh] shadow-2xl border border-slate-200 overflow-hidden my-auto flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-[#003d9b] via-[#00687a] to-[#00828a] p-5 sm:p-6 text-white flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-3.5">
+                <img
+                  src={selectedPatientForChart.avatarUrl}
+                  alt={selectedPatientForChart.name}
+                  className="w-14 h-14 rounded-2xl object-cover border-2 border-white/30 shadow-md"
+                />
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                      {selectedPatientForChart.name}
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-white/20 text-white border border-white/30">
+                      {selectedPatientForChart.uhid}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-400/20 text-teal-100 border border-teal-300/30">
+                      {selectedPatientForChart.ward} • {selectedPatientForChart.roomBed}
+                    </span>
+                  </div>
+                  <p className="text-xs text-teal-100/90 mt-1">
+                    {selectedPatientForChart.age} yrs • {selectedPatientForChart.gender} • Blood: <strong className="text-white">{selectedPatientForChart.bloodGroup}</strong> • Dx: <strong className="text-white">{selectedPatientForChart.primaryDiagnosis}</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSelectedPatientForChart(null)}
+                  className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 text-white flex items-center justify-center transition cursor-pointer"
+                  title="Close Drug Chart"
+                >
+                  <span className="material-symbols-outlined text-[24px]">close</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Critical Allergy & Safety Ribbon */}
+            <div className="bg-slate-100 border-b border-slate-200 px-5 py-2.5 flex items-center justify-between gap-4 flex-wrap text-xs">
+              <div className="flex items-center gap-2 flex-wrap">
+                {selectedPatientForChart.allergies && selectedPatientForChart.allergies.length > 0 ? (
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-xl font-bold">
+                    <span className="material-symbols-outlined text-[16px] text-rose-600">warning</span>
+                    <span>ALLERGY ALERT: {selectedPatientForChart.allergies[0].allergen} ({selectedPatientForChart.allergies[0].severity})</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-xl font-bold">
+                    <span className="material-symbols-outlined text-[16px] text-emerald-600">check_circle</span>
+                    <span>No Known Drug Allergies (NKDA)</span>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-800 border border-blue-200 rounded-xl font-bold font-mono">
+                  <span>eGFR: {selectedPatientForChart.vitals?.eGFR || 65} mL/min</span>
+                </div>
+              </div>
+
+              <div className="text-slate-600 font-medium">
+                Vitals: <strong className="text-slate-900">{selectedPatientForChart.vitals?.bp} mmHg</strong> • HR: <strong className="text-slate-900">{selectedPatientForChart.vitals?.hr} bpm</strong> • SpO2: <strong className="text-slate-900">{selectedPatientForChart.vitals?.spo2}%</strong>
+              </div>
+            </div>
+
+            {/* Scrollable Drug Chart Content */}
+            <div className="p-5 sm:p-6 overflow-y-auto space-y-6 flex-1 bg-[#f8fafc]">
+              
+              {/* Section 1: Inpatient Electronic Medication Administration Record (eMAR 24hr Grid) */}
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#003d9b] text-[20px]">calendar_view_week</span>
+                    <h3 className="text-sm font-bold text-slate-900">
+                      24-Hour eMAR Administration Timeline Grid
+                    </h3>
+                  </div>
+                  <span className="text-[11px] font-bold text-slate-500">Today's Dose Rounds</span>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-100/75 border-b border-slate-200 text-slate-700 font-bold">
+                        <th className="py-2.5 px-3.5 min-w-[220px]">Medication &amp; Prescriber</th>
+                        <th className="py-2.5 px-2 text-center min-w-[60px]">06:00</th>
+                        <th className="py-2.5 px-2 text-center min-w-[60px]">08:00</th>
+                        <th className="py-2.5 px-2 text-center min-w-[60px]">12:00</th>
+                        <th className="py-2.5 px-2 text-center min-w-[60px]">14:00</th>
+                        <th className="py-2.5 px-2 text-center min-w-[60px]">18:00</th>
+                        <th className="py-2.5 px-2 text-center min-w-[60px]">20:00</th>
+                        <th className="py-2.5 px-2 text-center min-w-[60px]">22:00</th>
+                        <th className="py-2.5 px-3 text-right">Pharmacy Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {selectedPatientForChart.prescriptions.map((rx) => {
+                        const isVerified = rx.pharmacyStatus === 'VERIFIED';
+                        const isClarify = rx.pharmacyStatus === 'CLARIFICATION_REQUIRED';
+
+                        return (
+                          <tr key={rx.id} className="hover:bg-slate-50/80 transition">
+                            <td className="py-3 px-3.5">
+                              <div className="font-extrabold text-[#003d9b] text-sm">{rx.drugName}</div>
+                              <div className="text-slate-600 font-medium text-[11px]">
+                                {rx.dose} • {rx.route} • {rx.frequency}
+                              </div>
+                              <div className="flex items-center gap-1 text-[10px] text-slate-500 mt-0.5">
+                                <span className="material-symbols-outlined text-[12px] text-[#003d9b]">stethoscope</span>
+                                <span className="font-bold text-slate-700">{rx.prescribedBy || 'Dr. Sarah Chen, MD'}</span>
+                              </div>
+                            </td>
+
+                            {/* Hour slots */}
+                            {['06:00', '08:00', '12:00', '14:00', '18:00', '20:00', '22:00'].map((hr, i) => {
+                              const isSlotActive = (rx.timing || '').includes(hr) || (rx.frequency.toLowerCase().includes('daily') && hr === '08:00') || (rx.frequency.toLowerCase().includes('twice') && (hr === '08:00' || hr === '20:00'));
+                              const isPast = hr === '06:00' || hr === '08:00';
+
+                              return (
+                                <td key={hr} className="py-3 px-1.5 text-center">
+                                  {isSlotActive ? (
+                                    isPast ? (
+                                      <div className="inline-flex flex-col items-center justify-center w-8 h-8 rounded-lg bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold" title="Given by Staff Nurse">
+                                        <span className="material-symbols-outlined text-[14px]">check</span>
+                                        <span className="text-[8px] font-mono leading-none">GIVEN</span>
+                                      </div>
+                                    ) : (
+                                      <div className="inline-flex flex-col items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-700 border border-blue-300 font-bold" title="Due on round">
+                                        <span className="text-[10px] font-mono leading-none font-extrabold">{hr}</span>
+                                        <span className="text-[8px] font-mono leading-none text-blue-500">DUE</span>
+                                      </div>
+                                    )
+                                  ) : rx.category === 'PRN' ? (
+                                    <span className="text-[9px] font-bold text-teal-600 bg-teal-50 px-1 py-0.5 rounded">PRN</span>
+                                  ) : (
+                                    <span className="text-slate-300">—</span>
+                                  )}
+                                </td>
+                              );
+                            })}
+
+                            <td className="py-3 px-3 text-right">
+                              {isVerified ? (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 inline-flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[12px]">check_circle</span>
+                                  <span>Verified</span>
+                                </span>
+                              ) : isClarify ? (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[12px]">help</span>
+                                  <span>Clarify</span>
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
+                                  <span>Pending</span>
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Section 2: Full Prescriptions Review & Action Controls */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[#00687a] text-[20px]">prescriptions</span>
+                  <span>Active Inpatient Drug Orders for Review &amp; Dispensing</span>
+                </h3>
+
+                <div className="space-y-3">
+                  {selectedPatientForChart.prescriptions.map((rx) => {
+                    const isVerified = rx.pharmacyStatus === 'VERIFIED';
+                    const isClarify = rx.pharmacyStatus === 'CLARIFICATION_REQUIRED';
+                    const isDispensed = rx.dispensingStatus === 'DISPENSED';
+
+                    return (
+                      <div
+                        key={rx.id}
+                        className={`p-4 rounded-2xl border bg-white shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                          isVerified ? 'border-emerald-200' : isClarify ? 'border-amber-200' : 'border-slate-200'
+                        }`}
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-base font-extrabold text-[#003d9b]">{rx.drugName}</h4>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                              {rx.category} • {rx.status}
+                            </span>
+                            {rx.isHighAlert && (
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200">
+                                ⚠️ High Alert Med
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs font-bold text-slate-700">
+                            {rx.dose} • {rx.route} • {rx.frequency} {rx.instructions ? `• Sig: "${rx.instructions}"` : ''}
+                          </p>
+                          <p className="text-[11px] text-[#003d9b] font-medium flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[14px]">stethoscope</span>
+                            <span>Prescribed by: <strong>{rx.prescribedBy || 'Dr. Sarah Chen, MD (Inpatient Attending)'}</strong></span>
+                            <span className="text-slate-400">• Started {rx.startDate || 'Today'}</span>
+                          </p>
+                        </div>
+
+                        {/* Action Buttons for this Prescription */}
+                        <div className="flex items-center gap-2 flex-wrap self-end md:self-center">
+                          {!isVerified ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setClarifyingItem({ patientId: selectedPatientForChart.id, rx, patientName: selectedPatientForChart.name });
+                                  setClarificationReason('');
+                                }}
+                                className="px-3 py-1.5 rounded-xl text-xs font-bold border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 transition cursor-pointer"
+                              >
+                                Clarify
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onVerifyPrescription(selectedPatientForChart.id, rx.id, 'Clinical verification approved in full chart review');
+                                  // Update local modal patient state
+                                  setSelectedPatientForChart((prev) =>
+                                    prev
+                                      ? {
+                                          ...prev,
+                                          prescriptions: prev.prescriptions.map((r) =>
+                                            r.id === rx.id ? { ...r, pharmacyStatus: 'VERIFIED', verifiedBy: currentStaff.name } : r
+                                          ),
+                                        }
+                                      : null
+                                  );
+                                }}
+                                className="px-3.5 py-1.5 rounded-xl text-xs font-extrabold bg-emerald-600 hover:bg-emerald-700 text-white transition cursor-pointer flex items-center gap-1"
+                              >
+                                <span className="material-symbols-outlined text-[15px]">verified</span>
+                                <span>Verify</span>
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onDispensePrescription(selectedPatientForChart.id, rx.id);
+                                setSelectedPatientForChart((prev) =>
+                                  prev
+                                    ? {
+                                        ...prev,
+                                        prescriptions: prev.prescriptions.map((r) =>
+                                          r.id === rx.id ? { ...r, dispensingStatus: 'DISPENSED' } : r
+                                        ),
+                                      }
+                                    : null
+                                );
+                              }}
+                              disabled={isDispensed}
+                              className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition cursor-pointer flex items-center gap-1 ${
+                                isDispensed
+                                  ? 'bg-slate-100 text-slate-400 border border-slate-200 cursor-default'
+                                  : 'bg-[#00687a] hover:bg-[#00505e] text-white shadow-xs'
+                              }`}
+                            >
+                              <span className="material-symbols-outlined text-[15px]">
+                                {isDispensed ? 'check' : 'local_shipping'}
+                              </span>
+                              <span>{isDispensed ? 'Dispensed' : 'Dispense to Pyxis'}</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-slate-50 border-t border-slate-200 p-4 px-6 flex items-center justify-between shrink-0">
+              <span className="text-xs text-slate-500 font-medium">
+                Duty Pharmacist e-Sign: <strong className="text-slate-800">{currentStaff.name} ({currentStaff.badgeNumber})</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedPatientForChart(null)}
+                className="px-5 py-2 rounded-xl bg-[#003d9b] hover:bg-[#0052cc] active:scale-95 text-white text-xs font-extrabold shadow-sm transition cursor-pointer"
+              >
+                Done &amp; Return to Queue
+              </button>
+            </div>
+
           </div>
         </div>
       )}
