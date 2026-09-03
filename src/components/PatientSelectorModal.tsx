@@ -117,7 +117,7 @@ export const PatientSelectorModal: React.FC<PatientSelectorModalProps> = ({
                     </div>
 
                     <div className="text-xs text-slate-400 font-mono mt-0.5">
-                      {pat.mrn} • {pat.age}y ({pat.gender}) • {pat.ward}
+                      {pat.mrn} • {pat.age}y ({pat.gender}) • Wt: {pat.weight || '78 kg'} • {pat.ward}
                     </div>
 
                     <p className="text-[11px] text-slate-300 truncate mt-1">

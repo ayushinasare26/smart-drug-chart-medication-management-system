@@ -11,6 +11,28 @@ export interface EmergencyContact {
   notes?: string;
 }
 
+export interface PastPrescriptionItem {
+  id: string;
+  drugName: string;
+  dose: string;
+  route: string;
+  frequency: string;
+  period: string;
+  indication: string;
+  outcome: 'Completed Course' | 'Discontinued' | 'Switched' | 'Tapered Off';
+  prescribedBy?: string;
+  notes?: string;
+}
+
+export interface PastMedicalHistory {
+  id: string;
+  condition: string;
+  year: string;
+  category: 'SURGERY' | 'CHRONIC_CONDITION' | 'PAST_ILLNESS' | 'HOSPITALIZATION';
+  notes?: string;
+  doctor?: string;
+}
+
 export interface PatientProfile {
   id: string;
   name: string;
@@ -19,6 +41,10 @@ export interface PatientProfile {
   dob: string;
   age: number;
   gender: string;
+  weight: string;
+  height?: string;
+  bmi?: number;
+  qrCode?: string;
   ward: string;
   roomBed: string;
   bloodGroup: string;
@@ -27,6 +53,8 @@ export interface PatientProfile {
   primaryDiagnosis: string;
   isCritical?: boolean;
   emergencyContacts?: EmergencyContact[];
+  pastPrescriptions?: PastPrescriptionItem[];
+  medicalHistory?: PastMedicalHistory[];
   allergies: {
     allergen: string;
     reaction: string;
@@ -117,7 +145,14 @@ export interface MedicationAdminTask {
   patientAvatar: string;
   drugName: string;
   doseRoute: string;
-  statusType: 'STAT' | 'DUE_NOW' | 'OVERDUE';
+  statusType: 'STAT' | 'DUE_NOW' | 'OVERDUE' | 'MISSED' | 'COMPLETED';
   timeLabel?: string;
   prescriptionId: string;
+  scheduledTime?: string;
+  frequency?: string;
+  timesPerDay?: string;
+  timingSlots?: string;
+  administeredAt?: string;
+  missedReason?: string;
+  overdueMinutes?: number;
 }
