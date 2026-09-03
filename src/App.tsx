@@ -600,160 +600,123 @@ const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Char
 
       </main>
 
-      {/* Bottom Navigation Bar (Matching Stitch prototype layout) */}
+      {/* Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e2e8f0] px-4 py-2 flex items-center justify-around shadow-lg">
         {currentStaff.role === 'PHARMACIST' ? (
-          <button
-            onClick={() => {
-              setActiveTab('Pharmacy');
-              setIsPrescribing(false);
-            }}
-            className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-              activeTab === 'Pharmacy' && !isPrescribing ? 'text-[#00687a]' : 'text-[#64748b] hover:text-[#00687a]'
-            }`}
-          >
-            <span className="material-symbols-outlined text-[24px]">local_pharmacy</span>
-            <span className="text-[11px] font-bold">Dispensary</span>
-          </button>
+          <>
+            <button
+              onClick={() => {
+                setActiveTab('Pharmacy');
+                setIsPrescribing(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+                activeTab === 'Pharmacy' && !isPrescribing ? 'text-[#00687a]' : 'text-[#64748b] hover:text-[#00687a]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">local_pharmacy</span>
+              <span className="text-[11px] font-bold">Dispensary</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('Patients');
+                setIsPrescribing(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+                activeTab === 'Patients' || isPrescribing ? 'text-[#00687a]' : 'text-[#64748b] hover:text-[#00687a]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">group</span>
+              <span className="text-[11px] font-bold">Patients</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('Profile');
+                setIsPrescribing(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+                activeTab === 'Profile' && !isPrescribing ? 'text-[#00687a]' : 'text-[#64748b] hover:text-[#00687a]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">person</span>
+              <span className="text-[11px] font-bold">Profile</span>
+            </button>
+          </>
         ) : (
-<>
-  <button
-    onClick={() => {
-      setActiveTab('Home');
-      setIsPrescribing(false);
-    }}
-    className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-      activeTab === 'Home' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-    }`}
-  >
-    <span className="material-symbols-outlined text-[24px]">home</span>
-    <span className="text-[11px] font-bold">Home</span>
-  </button>
+          <>
+            <button
+              onClick={() => {
+                setActiveTab('Home');
+                setIsPrescribing(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+                activeTab === 'Home' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">home</span>
+              <span className="text-[11px] font-bold">Home</span>
+            </button>
 
-  <button
-    onClick={() => {
-      setActiveTab('Patients');
-      setIsPrescribing(false);
-    }}
-    className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-      activeTab === 'Patients' || isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-    }`}
-  >
-    <span className="material-symbols-outlined text-[24px]">group</span>
-    <span className="text-[11px] font-bold">Patients</span>
-  </button>
+            <button
+              onClick={() => {
+                setActiveTab('Patients');
+                setIsPrescribing(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+                activeTab === 'Patients' || isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">group</span>
+              <span className="text-[11px] font-bold">Patients</span>
+            </button>
 
-  <button
-    onClick={() => {
-      setActiveTab('Tasks');
-      setIsPrescribing(false);
-    }}
-    className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-      activeTab === 'Tasks' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-    }`}
-  >
-    <span className="material-symbols-outlined text-[24px]">checklist</span>
-    <span className="text-[11px] font-bold">Tasks</span>
-  </button>
+            <button
+              onClick={() => {
+                setActiveTab('Tasks');
+                setIsPrescribing(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+                activeTab === 'Tasks' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">checklist</span>
+              <span className="text-[11px] font-bold">Tasks</span>
+            </button>
 
-  <button
-    onClick={() => {
-      setActiveTab(currentStaff.role === 'DOCTOR' ? 'Analysis' : 'Charts');
-      setIsPrescribing(false);
-    }}
-    className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-      (activeTab === 'Charts' || activeTab === 'Analysis') && !isPrescribing
-        ? 'text-[#003d9b]'
-        : 'text-[#64748b] hover:text-[#003d9b]'
-    }`}
-  >
-    <span className="material-symbols-outlined text-[24px]">
-      {currentStaff.role === 'DOCTOR' ? 'query_stats' : 'analytics'}
-    </span>
-    <span className="text-[11px] font-bold">
-      {currentStaff.role === 'DOCTOR' ? 'Analysis' : 'Charts'}
-    </span>
-  </button>
+            <button
+              onClick={() => {
+                setActiveTab(currentStaff.role === 'DOCTOR' ? 'Analysis' : 'Charts');
+                setIsPrescribing(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+                (activeTab === 'Charts' || activeTab === 'Analysis') && !isPrescribing
+                  ? 'text-[#003d9b]'
+                  : 'text-[#64748b] hover:text-[#003d9b]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">
+                {currentStaff.role === 'DOCTOR' ? 'query_stats' : 'analytics'}
+              </span>
+              <span className="text-[11px] font-bold">
+                {currentStaff.role === 'DOCTOR' ? 'Analysis' : 'Charts'}
+              </span>
+            </button>
 
-  <button
-    onClick={() => {
-      setActiveTab('Profile');
-      setIsPrescribing(false);
-    }}
-    className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-      activeTab === 'Profile' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-    }`}
-  >
-    <span className="material-symbols-outlined text-[24px]">person</span>
-    <span className="text-[11px] font-bold">Profile</span>
-  </button>
-</>
+            <button
+              onClick={() => {
+                setActiveTab('Profile');
+                setIsPrescribing(false);
+              }}
+              className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+                activeTab === 'Profile' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">person</span>
+              <span className="text-[11px] font-bold">Profile</span>
+            </button>
+          </>
         )}
-
-        <button
-          onClick={() => {
-            setActiveTab('Patients');
-            setIsPrescribing(false);
-          }}
-          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-            activeTab === 'Patients' || isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[24px]">group</span>
-          <span className="text-[11px] font-bold">Patients</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab('Pharmacy');
-            setIsPrescribing(false);
-          }}
-          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-            activeTab === 'Pharmacy' && !isPrescribing ? 'text-[#00687a]' : 'text-[#64748b] hover:text-[#00687a]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[24px]">local_pharmacy</span>
-          <span className="text-[11px] font-bold">Pharmacy</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab('Tasks');
-            setIsPrescribing(false);
-          }}
-          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-            activeTab === 'Tasks' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[24px]">checklist</span>
-          <span className="text-[11px] font-bold">Tasks</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab('Charts');
-            setIsPrescribing(false);
-          }}
-          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-            activeTab === 'Charts' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[24px]">analytics</span>
-          <span className="text-[11px] font-bold">Charts</span>
-        </button>
-
-        <button
-          onClick={() => {
-            setActiveTab('Profile');
-            setIsPrescribing(false);
-          }}
-          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
-            activeTab === 'Profile' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[24px]">person</span>
-          <span className="text-[11px] font-bold">Profile</span>
-        </button>
       </nav>
 
       {/* Critical Safety Alert Modal (Screenshot 4) */}
