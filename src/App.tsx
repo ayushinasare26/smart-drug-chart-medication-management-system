@@ -5,7 +5,7 @@ import {
   INITIAL_CLINICAL_TASKS,
   INITIAL_MED_TASKS,
 } from './data/clinicalData';
-import { PatientProfile, PrescriptionItem, StatAlertItem, ClinicalTaskItem, MedicationAdminTask, EmergencyContact } from './types/dashboard';
+import { PatientProfile, PrescriptionItem, StatAlertItem, ClinicalTaskItem, MedicationAdminTask } from './types/dashboard';
 import { ClinicalStaff } from './types/medication';
 import { CLINICAL_STAFF, INITIAL_MEDICATIONS, INITIAL_ADMINISTRATION_LOGS } from './data/mockData';
 
@@ -18,8 +18,7 @@ import { HospitalOperationsView } from './components/HospitalOperationsView';
 import { NewPrescriptionView } from './components/NewPrescriptionView';
 import { CriticalSafetyAlertModal } from './components/CriticalSafetyAlertModal';
 import { FiveRightsVerificationModal } from './components/FiveRightsVerificationModal';
-import { EmergencyFamilyDetailsCard } from './components/EmergencyFamilyDetailsCard';
-import { PatientQRScannerModal } from './components/PatientQRScannerModal';
+import { PharmacistPortalView } from './components/PharmacistPortalView';
 
 // Advanced Hospital eMAR & Drug Chart Modules
 import { SmartDrugChart } from './components/SmartDrugChart';
@@ -28,14 +27,16 @@ import { SafetyAlertsModal } from './components/SafetyAlertsModal';
 import { InfusionManagementModal } from './components/InfusionManagementModal';
 import { PharmacyReviewDrawer } from './components/PharmacyReviewDrawer';
 import { PrintDrugChartModal } from './components/PrintDrugChartModal';
+import { PatientRegistrationModal } from './components/PatientRegistrationModal';
 
 export default function App() {
   // Authentication State (Starts at Secure Login screen as designed)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false); // Starts at Secure Login screen
-  const [currentStaff, setCurrentStaff] = useState<ClinicalStaff>(CLINICAL_STAFF[2]); // Dr. Sarah Chen / Dr. Julian Ross
+  const [staffList, setStaffList] = useState<ClinicalStaff[]>(CLINICAL_STAFF);
+  const [currentStaff, setCurrentStaff] = useState<ClinicalStaff>(CLINICAL_STAFF[0]); // Default to first doctor (Dr. Sarah Chen)
 
-  // Navigation Tabs: 'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Profile' | 'NewPrescription'
-  const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Profile'>('Home');
+  // Navigation Tabs: 'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Profile' | 'Pharmacy'
+  const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Profile' | 'Pharmacy'>('Home');
 
   // Subview State
   const [isPrescribing, setIsPrescribing] = useState<boolean>(false);
@@ -51,6 +52,7 @@ export default function App() {
   // Modals
   const [isSafetyAlertOpen, setIsSafetyAlertOpen] = useState<boolean>(false);
   const [isFiveRightsOpen, setIsFiveRightsOpen] = useState<boolean>(false);
+  const [isRegisterPatientOpen, setIsRegisterPatientOpen] = useState<boolean>(false);
   const [verifyingPrescription, setVerifyingPrescription] = useState<PrescriptionItem | null>(null);
   const [verifyingPatient, setVerifyingPatient] = useState<PatientProfile>(CLINICAL_PATIENTS[0]);
 
@@ -112,45 +114,9 @@ export default function App() {
   const handleCompleteFiveRights = () => {
     setIsFiveRightsOpen(false);
     if (verifyingPrescription && verifyingPatient) {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       showToast(`Administered ${verifyingPrescription.drugName} to ${verifyingPatient.name}. 5 Rights verified.`, 'SUCCESS');
-      
-      // Update task to COMPLETED status with nurse signature and time
-      setMedTasks((prev) => {
-        const existing = prev.find((t) => t.patientId === verifyingPatient.id && t.drugName.toLowerCase() === verifyingPrescription.drugName.toLowerCase());
-        if (existing) {
-          return prev.map((t) =>
-            t.id === existing.id
-              ? {
-                  ...t,
-                  statusType: 'COMPLETED' as const,
-                  administeredAt: `${timeStr} by ${currentStaff.name}`,
-                  timeLabel: `COMPLETED • ${timeStr}`,
-                }
-              : t
-          );
-        } else {
-          const newCompletedTask: MedicationAdminTask = {
-            id: `med-task-comp-${Date.now()}`,
-            patientId: verifyingPatient.id,
-            patientName: verifyingPatient.name,
-            roomBed: `${verifyingPatient.ward} • ${verifyingPatient.roomBed}`,
-            patientDob: verifyingPatient.dob,
-            patientAvatar: verifyingPatient.avatarUrl,
-            drugName: verifyingPrescription.drugName,
-            doseRoute: `${verifyingPrescription.dose} ${verifyingPrescription.route}`,
-            statusType: 'COMPLETED',
-            timeLabel: `COMPLETED • ${timeStr}`,
-            scheduledTime: verifyingPrescription.timing || 'Scheduled',
-            administeredAt: `${timeStr} by ${currentStaff.name}`,
-            frequency: verifyingPrescription.frequency || 'Once daily',
-            timesPerDay: 'Administered',
-            prescriptionId: verifyingPrescription.id,
-          };
-          return [newCompletedTask, ...prev];
-        }
-      });
+      // Remove from medTasks if present
+      setMedTasks((prev) => prev.filter((t) => t.patientId !== verifyingPatient.id || t.drugName !== verifyingPrescription.drugName));
     }
   };
 
@@ -167,35 +133,128 @@ export default function App() {
       startDate: 'Today',
       category: 'REGULAR',
       instructions: data.sig,
+      prescribedBy: currentStaff.name,
+      pharmacyStatus: 'PENDING_REVIEW',
+      dispensingStatus: 'IN_STOCK',
     };
 
     setPatients((prev) =>
       prev.map((p) => (p.id === selectedPatientId ? { ...p, prescriptions: [newRx, ...p.prescriptions] } : p))
     );
-    showToast(`Prescription for ${newRx.drugName} signed & transmitted.`, 'SUCCESS');
+    showToast(`Prescription for ${newRx.drugName} signed & transmitted to Pharmacy Queue.`, 'SUCCESS');
   };
 
-  const handleUpdateEmergencyContacts = (updatedContacts: EmergencyContact[]) => {
+  // Pharmacist Actions
+  const handleVerifyPrescription = (patientId: string, prescriptionId: string, notes?: string) => {
     setPatients((prev) =>
-      prev.map((p) => (p.id === currentPatient.id ? { ...p, emergencyContacts: updatedContacts } : p))
+      prev.map((p) => {
+        if (p.id !== patientId) return p;
+        return {
+          ...p,
+          prescriptions: p.prescriptions.map((rx) => {
+            if (rx.id !== prescriptionId) return rx;
+            return {
+              ...rx,
+              pharmacyStatus: 'VERIFIED',
+              verifiedBy: currentStaff.name,
+              verifiedTimestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              pharmacyNotes: notes || 'Clinical check verified & approved by Pharmacist',
+              dispensingStatus: 'IN_STOCK',
+            };
+          }),
+        };
+      })
     );
+    showToast('Prescription verified & clinically approved for administration.', 'SUCCESS');
+  };
+
+  const handleDispensePrescription = (patientId: string, prescriptionId: string) => {
+    setPatients((prev) =>
+      prev.map((p) => {
+        if (p.id !== patientId) return p;
+        return {
+          ...p,
+          prescriptions: p.prescriptions.map((rx) => {
+            if (rx.id !== prescriptionId) return rx;
+            return {
+              ...rx,
+              pharmacyStatus: 'VERIFIED',
+              dispensingStatus: 'DISPENSED',
+              verifiedBy: rx.verifiedBy || currentStaff.name,
+            };
+          }),
+        };
+      })
+    );
+    showToast('Medication dispensed & dispatched to Ward Pyxis cabinet.', 'SUCCESS');
+  };
+
+  const handleFlagClarification = (patientId: string, prescriptionId: string, reason: string) => {
+    setPatients((prev) =>
+      prev.map((p) => {
+        if (p.id !== patientId) return p;
+        return {
+          ...p,
+          prescriptions: p.prescriptions.map((rx) => {
+            if (rx.id !== prescriptionId) return rx;
+            return {
+              ...rx,
+              pharmacyStatus: 'CLARIFICATION_REQUIRED',
+              pharmacyNotes: reason,
+            };
+          }),
+        };
+      })
+    );
+    const pat = patients.find((p) => p.id === patientId);
+    setClinicalTasks((prev) => [
+      {
+        id: `task-clarify-${Date.now()}`,
+        title: `Pharmacist Clarification: ${reason} (${pat?.name || 'Patient'})`,
+        dueTime: 'STAT',
+        badgeText: 'Rx Clarification',
+        badgeColor: 'bg-amber-100 text-amber-800',
+        completed: false,
+        patientId,
+      },
+      ...prev,
+    ]);
+    showToast(`Clarification query flagged to prescriber: "${reason}"`, 'ALERT');
   };
 
   // If not authenticated, render the Secure Login Screen
   if (!isAuthenticated) {
     return (
       <SecureLoginScreen
-        staffList={CLINICAL_STAFF}
+        staffList={staffList}
+        onRegisterDoctor={(newDoctor) => {
+          setStaffList((prev) => [newDoctor, ...prev]);
+          showToast(`${newDoctor.name} (${newDoctor.badgeNumber}) registered to Physician Directory.`, 'SUCCESS');
+        }}
+        onRegisterPharmacist={(newPharmacist) => {
+          setStaffList((prev) => [newPharmacist, ...prev]);
+          showToast(`${newPharmacist.name} (${newPharmacist.badgeNumber}) registered to Pharmacy Directory.`, 'SUCCESS');
+        }}
+        onRegisterPatient={(newPatient) => {
+          setPatients((prev) => [newPatient, ...prev]);
+          setSelectedPatientId(newPatient.id);
+          showToast(`Patient ${newPatient.name} registered and chart created!`, 'SUCCESS');
+        }}
         onLoginSuccess={(staff) => {
           setCurrentStaff(staff);
+          // Ensure staff is in staffList if it was custom
+          setStaffList((prev) => {
+            const exists = prev.some((s) => s.id === staff.id || s.badgeNumber.toLowerCase() === staff.badgeNumber.toLowerCase());
+            return exists ? prev : [staff, ...prev];
+          });
           setIsAuthenticated(true);
-          // If patient logs in, navigate directly to Patient Dashboard
+          // Role-based landing page
           if (staff.role === 'PATIENT') {
-            setSelectedPatientId('pat-1');
             setActiveTab('Patients');
           } else if (staff.role === 'NURSE' || staff.role === 'CHARGE_NURSE') {
-            // If nurse logs in, navigate directly to Medication Tasks dashboard
             setActiveTab('Tasks');
+          } else if (staff.role === 'PHARMACIST') {
+            setActiveTab('Pharmacy');
           } else {
             setActiveTab('Home');
           }
@@ -243,6 +302,8 @@ export default function App() {
               setActiveTab('Patients');
             } else if (currentStaff.role === 'NURSE' || currentStaff.role === 'CHARGE_NURSE') {
               setActiveTab('Tasks');
+            } else if (currentStaff.role === 'PHARMACIST') {
+              setActiveTab('Pharmacy');
             } else {
               setActiveTab('Home');
             }
@@ -261,22 +322,37 @@ export default function App() {
         {/* Header Right Actions: Quick Safety Alert Demo, Notification Bell, User Avatar */}
         <div className="flex items-center gap-3 sm:gap-4">
           
-          {/* Quick Demo Safety Alert Trigger (Clinicians only) */}
-          {currentStaff.role !== 'PATIENT' && (
-            <button
-              onClick={() => setIsSafetyAlertOpen(true)}
-              className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition"
-              title="Demonstrate Critical Safety Alert"
-            >
-              <span className="material-symbols-outlined text-[16px] text-rose-600">notification_important</span>
-              <span>Trigger Alert Demo</span>
-            </button>
-          )}
+          {/* Pharmacy Portal Direct Shortcut Button */}
+          <button
+            onClick={() => {
+              setActiveTab('Pharmacy');
+              setIsPrescribing(false);
+            }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === 'Pharmacy'
+                ? 'bg-[#00687a] text-white shadow-xs'
+                : 'bg-teal-50 hover:bg-teal-100 border border-teal-200 text-[#00687a]'
+            }`}
+            title="Clinical Pharmacy Queue & Dispensing Portal"
+          >
+            <span className="material-symbols-outlined text-[16px]">local_pharmacy</span>
+            <span className="hidden sm:inline">Pharmacy Queue</span>
+          </button>
+
+          {/* Quick Demo Safety Alert Trigger */}
+          <button
+            onClick={() => setIsSafetyAlertOpen(true)}
+            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer"
+            title="Demonstrate Critical Safety Alert"
+          >
+            <span className="material-symbols-outlined text-[16px] text-rose-600">notification_important</span>
+            <span>Trigger Alert Demo</span>
+          </button>
 
           {/* Notification Bell */}
           <button
             onClick={() => setIsSafetyAlertOpen(true)}
-            className="relative p-2 rounded-xl text-[#475569] hover:bg-slate-100 transition"
+            className="relative p-2 rounded-xl text-[#475569] hover:bg-slate-100 transition cursor-pointer"
             title="Clinical Notifications"
           >
             <span className="material-symbols-outlined text-[22px]">notifications</span>
@@ -288,14 +364,30 @@ export default function App() {
             onClick={() => setActiveTab('Profile')}
             className="flex items-center gap-2.5 cursor-pointer p-1 rounded-xl hover:bg-slate-100 transition"
           >
-            <img
-              src={staffAvatar}
-              alt={currentStaff.name}
-              className="w-9 h-9 rounded-full object-cover border-2 border-[#003d9b]/30 shadow-xs"
-            />
-            <div className="hidden lg:block text-left">
-              <p className="text-xs font-bold text-[#0f172a] leading-tight">{currentStaff.name}</p>
-              <p className="text-[11px] text-[#64748b] leading-tight">{currentStaff.department || 'Ward 4B'}</p>
+            {/* Clinician Staff Info & Switcher */}
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-xs font-bold text-[#0f172a] leading-tight">{currentStaff.name}</p>
+                <p className="text-[11px] text-[#64748b] leading-tight">{currentStaff.badgeNumber} • {currentStaff.department || 'Ward 4B'}</p>
+              </div>
+              <img
+                src={staffAvatar}
+                alt={currentStaff.name}
+                className="w-10 h-10 rounded-full object-cover border-2 border-slate-200 ring-2 ring-blue-500/20"
+              />
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsAuthenticated(false);
+                  showToast('Signed out of clinical session.', 'INFO');
+                }}
+                className="px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-[11px] font-bold text-slate-600 transition flex items-center gap-1 cursor-pointer"
+                title="Switch Staff / Sign Out"
+              >
+                <span className="material-symbols-outlined text-[16px]">logout</span>
+                <span className="hidden sm:inline">Switch</span>
+              </button>
             </div>
           </div>
         </div>
@@ -318,8 +410,24 @@ export default function App() {
           />
         ) : (
           <>
+            {/* VIEW: Pharmacy Portal */}
+            {(activeTab === 'Pharmacy' || (activeTab === 'Home' && currentStaff.role === 'PHARMACIST')) && (
+              <PharmacistPortalView
+                currentStaff={currentStaff}
+                patients={patients}
+                onVerifyPrescription={handleVerifyPrescription}
+                onDispensePrescription={handleDispensePrescription}
+                onFlagClarification={handleFlagClarification}
+                onOpenDrugChart={(patientId) => {
+                  setSelectedPatientId(patientId);
+                  setActiveTab('Patients');
+                  setShowFullDrugChart(true);
+                }}
+              />
+            )}
+
             {/* VIEW 1: Home Dashboard (Renders Physician Dashboard for Doctors or Medication Tasks for Nurses) */}
-            {activeTab === 'Home' && (
+            {activeTab === 'Home' && currentStaff.role !== 'PHARMACIST' && (
               currentStaff.role === 'NURSE' || currentStaff.role === 'CHARGE_NURSE' ? (
                 <MedicationTasksView
                   tasks={medTasks}
@@ -344,33 +452,40 @@ export default function App() {
             {/* VIEW 2: Patient Detail */}
             {activeTab === 'Patients' && (
               <div className="space-y-6">
-                {/* Patient Selector Strip - Only for doctors and nurses */}
-                {currentStaff.role !== 'PATIENT' && (
-                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                    {patients.map((pat) => (
-                      <button
-                        key={pat.id}
-                        onClick={() => setSelectedPatientId(pat.id)}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-2 border ${
-                          selectedPatientId === pat.id
-                            ? 'bg-[#003d9b] text-white border-[#003d9b] shadow-xs'
-                            : 'bg-white text-[#475569] border-[#e2e8f0] hover:bg-slate-50'
-                        }`}
-                      >
-                        <span>{pat.name}</span>
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
-                          selectedPatientId === pat.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {pat.roomBed}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+                {/* Patient Selector Strip */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+                  {patients.map((pat) => (
+                    <button
+                      key={pat.id}
+                      onClick={() => setSelectedPatientId(pat.id)}
+                      className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-2 border cursor-pointer ${
+                        selectedPatientId === pat.id
+                          ? 'bg-[#003d9b] text-white border-[#003d9b] shadow-xs'
+                          : 'bg-white text-[#475569] border-[#e2e8f0] hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{pat.name}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                        selectedPatientId === pat.id ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {pat.roomBed}
+                      </span>
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsRegisterPatientOpen(true)}
+                    className="px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap bg-teal-50 text-[#00687a] border border-teal-200 hover:bg-teal-100 active:scale-95 transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                    title="Admit / Register New Patient"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">person_add</span>
+                    <span>Add Patient</span>
+                  </button>
+                </div>
 
                 <PatientDetailView
                   patient={currentPatient}
-                  userRole={currentStaff.role}
                   onPrescribeMedicine={() => setIsPrescribing(true)}
                   onAddClinicalNote={(pat) => setClinicalNoteModal(pat)}
                   onAdministerPrescription={handleAdministerPrescription}
@@ -386,7 +501,7 @@ export default function App() {
                       </h3>
                       <button
                         onClick={() => setShowFullDrugChart(false)}
-                        className="text-xs text-[#003d9b] font-semibold hover:underline"
+                        className="text-xs text-[#003d9b] font-semibold hover:underline cursor-pointer"
                       >
                         Collapse Chart
                       </button>
@@ -422,123 +537,55 @@ export default function App() {
               <HospitalOperationsView />
             )}
 
-            {/* VIEW 5: Profile & Workstation Controls */}
+            {/* VIEW 5: Clinician Profile & Workstation Controls */}
             {activeTab === 'Profile' && (
               <div className="max-w-xl mx-auto space-y-6 pb-20">
-                {currentStaff.role === 'PATIENT' ? (
-                  <>
-                    {/* Patient Inpatient Overview Card */}
-                    <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e2e8f0] shadow-xs text-center space-y-4">
-                      <img
-                        src={staffAvatar}
-                        alt={currentStaff.name}
-                        className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-[#003d9b]/20 shadow-sm"
-                      />
-                      <div>
-                        <h2 className="text-2xl font-extrabold text-[#0f172a]">{currentStaff.name}</h2>
-                        <p className="text-xs text-[#64748b] mt-0.5">
-                          Inpatient • {currentPatient.ward}, {currentPatient.roomBed}
-                        </p>
-                        <p className="text-xs font-mono text-[#003d9b] mt-1 font-semibold">
-                          UHID: {currentPatient.uhid} • Admitted: {currentPatient.admittedDate}
-                        </p>
-                      </div>
+                <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e2e8f0] shadow-xs text-center space-y-4">
+                  <img
+                    src={staffAvatar}
+                    alt={currentStaff.name}
+                    className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-[#003d9b]/20 shadow-sm"
+                  />
+                  <div>
+                    <h2 className="text-2xl font-bold text-[#0f172a]">{currentStaff.name}</h2>
+                    <p className="text-xs text-[#64748b] mt-0.5">
+                      {currentStaff.role === 'PATIENT'
+                        ? 'Inpatient • Ward 3, Bed 12'
+                        : currentStaff.role === 'NURSE' || currentStaff.role === 'CHARGE_NURSE'
+                        ? 'Staff Nurse • Ward 4B eMAR'
+                        : currentStaff.role === 'PHARMACIST'
+                        ? 'Clinical Pharmacist • Dispensary & Review'
+                        : 'Staff Physician • Internal Medicine'}
+                    </p>
+                    <p className="text-xs font-mono text-[#003d9b] mt-1 font-semibold">
+                      {currentStaff.role === 'PATIENT' ? 'UHID' : 'Badge'}: {currentStaff.badgeNumber} • {currentStaff.department || 'Ward 4B'}
+                    </p>
+                  </div>
 
-                      <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 text-left">
-                        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                            Blood Group &amp; Age
-                          </span>
-                          <p className="text-xs sm:text-sm font-bold text-slate-800 mt-0.5">
-                            {currentPatient.bloodGroup} • {currentPatient.age} yrs ({currentPatient.gender})
-                          </p>
-                        </div>
-                        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                            Attending Doctor
-                          </span>
-                          <p className="text-xs sm:text-sm font-bold text-[#003d9b] mt-0.5">
-                            Dr. Sarah Chen, MD
-                          </p>
-                        </div>
-                        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-100 sm:col-span-2">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                            Primary Inpatient Diagnosis
-                          </span>
-                          <p className="text-xs font-medium text-slate-700 mt-0.5">
-                            {currentPatient.primaryDiagnosis}
-                          </p>
-                        </div>
-                      </div>
+                  <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 text-left">
+                    <div className="bg-slate-50 p-3 rounded-xl">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Department</span>
+                      <p className="text-xs font-bold text-slate-800">{currentStaff.department || 'Ward 4B'}</p>
                     </div>
-
-                    {/* Emergency Family Details Feature Card */}
-                    <EmergencyFamilyDetailsCard
-                      patient={currentPatient}
-                      onUpdateContacts={handleUpdateEmergencyContacts}
-                      onShowToast={showToast}
-                    />
-
-                    {/* Sign Out Action */}
-                    <div className="bg-white rounded-3xl p-4 sm:p-5 border border-[#e2e8f0] shadow-xs">
-                      <button
-                        onClick={() => {
-                          setIsAuthenticated(false);
-                          showToast('Signed out of Patient Portal. Session ended.', 'INFO');
-                        }}
-                        className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs sm:text-sm rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[20px]">logout</span>
-                        <span>Sign Out of Patient Portal</span>
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#e2e8f0] shadow-xs text-center space-y-4">
-                    <img
-                      src={staffAvatar}
-                      alt={currentStaff.name}
-                      className="w-24 h-24 rounded-full object-cover mx-auto border-4 border-[#003d9b]/20 shadow-sm"
-                    />
-                    <div>
-                      <h2 className="text-2xl font-bold text-[#0f172a]">{currentStaff.name}</h2>
-                      <p className="text-xs text-[#64748b] mt-0.5">
-                        {currentStaff.role === 'NURSE' || currentStaff.role === 'CHARGE_NURSE'
-                          ? 'Staff Nurse • Ward 4B eMAR'
-                          : currentStaff.role === 'PHARMACIST'
-                          ? 'Clinical Pharmacist • Dispensary & Review'
-                          : 'Staff Physician • Internal Medicine'}
-                      </p>
-                      <p className="text-xs font-mono text-[#003d9b] mt-1 font-semibold">
-                        Badge: {currentStaff.badgeNumber} • {currentStaff.department || 'Ward 4B'}
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3 pt-4 border-t border-slate-100 text-left">
-                      <div className="bg-slate-50 p-3 rounded-xl">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase">Department</span>
-                        <p className="text-xs font-bold text-slate-800">{currentStaff.department || 'Ward 4B'}</p>
-                      </div>
-                      <div className="bg-slate-50 p-3 rounded-xl">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase">Shift Status</span>
-                        <p className="text-xs font-bold text-emerald-600">Active (Ward 4B)</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 pt-4">
-                      <button
-                        onClick={() => {
-                          setIsAuthenticated(false);
-                          showToast('Workstation locked. Session ended.', 'INFO');
-                        }}
-                        className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">lock</span>
-                        <span>Lock Workstation &amp; Logout</span>
-                      </button>
+                    <div className="bg-slate-50 p-3 rounded-xl">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase">Shift Status</span>
+                      <p className="text-xs font-bold text-emerald-600">Active (Ward 4B)</p>
                     </div>
                   </div>
-                )}
+
+                  <div className="space-y-2 pt-4">
+                    <button
+                      onClick={() => {
+                        setIsAuthenticated(false);
+                        showToast('Workstation locked. Session ended.', 'INFO');
+                      }}
+                      className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">lock</span>
+                      <span>Lock Workstation &amp; Logout</span>
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
           </>
@@ -546,104 +593,100 @@ export default function App() {
 
       </main>
 
-      {/* Bottom Navigation Bar */}
+      {/* Bottom Navigation Bar (Matching Stitch prototype layout) */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e2e8f0] px-4 py-2 flex items-center justify-around shadow-lg">
-        {currentStaff.role === 'PATIENT' ? (
-          <>
-            <button
-              onClick={() => {
-                setActiveTab('Patients');
-                setIsPrescribing(false);
-              }}
-              className={`flex flex-col items-center gap-1 transition ${
-                activeTab === 'Patients' ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[24px]">vital_signs</span>
-              <span className="text-[11px] font-bold">My Health Record</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('Profile');
-                setIsPrescribing(false);
-              }}
-              className={`flex flex-col items-center gap-1 transition ${
-                activeTab === 'Profile' ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[24px]">person</span>
-              <span className="text-[11px] font-bold">My Profile</span>
-            </button>
-          </>
+        {currentStaff.role === 'PHARMACIST' ? (
+          <button
+            onClick={() => {
+              setActiveTab('Pharmacy');
+              setIsPrescribing(false);
+            }}
+            className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+              activeTab === 'Pharmacy' && !isPrescribing ? 'text-[#00687a]' : 'text-[#64748b] hover:text-[#00687a]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[24px]">local_pharmacy</span>
+            <span className="text-[11px] font-bold">Dispensary</span>
+          </button>
         ) : (
-          <>
-            <button
-              onClick={() => {
-                setActiveTab('Home');
-                setIsPrescribing(false);
-              }}
-              className={`flex flex-col items-center gap-1 transition ${
-                activeTab === 'Home' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[24px]">home</span>
-              <span className="text-[11px] font-bold">Home</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('Patients');
-                setIsPrescribing(false);
-              }}
-              className={`flex flex-col items-center gap-1 transition ${
-                activeTab === 'Patients' || isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[24px]">group</span>
-              <span className="text-[11px] font-bold">Patients</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('Tasks');
-                setIsPrescribing(false);
-              }}
-              className={`flex flex-col items-center gap-1 transition ${
-                activeTab === 'Tasks' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[24px]">checklist</span>
-              <span className="text-[11px] font-bold">Tasks</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('Charts');
-                setIsPrescribing(false);
-              }}
-              className={`flex flex-col items-center gap-1 transition ${
-                activeTab === 'Charts' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[24px]">analytics</span>
-              <span className="text-[11px] font-bold">Charts</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setActiveTab('Profile');
-                setIsPrescribing(false);
-              }}
-              className={`flex flex-col items-center gap-1 transition ${
-                activeTab === 'Profile' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[24px]">person</span>
-              <span className="text-[11px] font-bold">Profile</span>
-            </button>
-          </>
+          <button
+            onClick={() => {
+              setActiveTab('Home');
+              setIsPrescribing(false);
+            }}
+            className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+              activeTab === 'Home' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[24px]">home</span>
+            <span className="text-[11px] font-bold">Home</span>
+          </button>
         )}
+
+        <button
+          onClick={() => {
+            setActiveTab('Patients');
+            setIsPrescribing(false);
+          }}
+          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+            activeTab === 'Patients' || isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[24px]">group</span>
+          <span className="text-[11px] font-bold">Patients</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('Pharmacy');
+            setIsPrescribing(false);
+          }}
+          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+            activeTab === 'Pharmacy' && !isPrescribing ? 'text-[#00687a]' : 'text-[#64748b] hover:text-[#00687a]'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[24px]">local_pharmacy</span>
+          <span className="text-[11px] font-bold">Pharmacy</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('Tasks');
+            setIsPrescribing(false);
+          }}
+          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+            activeTab === 'Tasks' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[24px]">checklist</span>
+          <span className="text-[11px] font-bold">Tasks</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('Charts');
+            setIsPrescribing(false);
+          }}
+          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+            activeTab === 'Charts' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[24px]">analytics</span>
+          <span className="text-[11px] font-bold">Charts</span>
+        </button>
+
+        <button
+          onClick={() => {
+            setActiveTab('Profile');
+            setIsPrescribing(false);
+          }}
+          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+            activeTab === 'Profile' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[24px]">person</span>
+          <span className="text-[11px] font-bold">Profile</span>
+        </button>
       </nav>
 
       {/* Critical Safety Alert Modal (Screenshot 4) */}
@@ -715,18 +758,48 @@ export default function App() {
         </div>
       )}
 
-      {/* Inpatient QR Scanner Modal */}
-      <PatientQRScannerModal
-        isOpen={showBarcodeScanner}
-        onClose={() => setShowBarcodeScanner(false)}
-        patients={patients}
-        onScanPatient={(patientId) => {
-          setShowBarcodeScanner(false);
-          handleOpenPatientDetail(patientId);
-          const targetPat = patients.find((p) => p.id === patientId);
-          if (targetPat) {
-            showToast(`Patient QR Verified: ${targetPat.name} (${targetPat.uhid}) - Profile Loaded!`, 'SUCCESS');
-          }
+      {/* Barcode Scanner Modal Simulation */}
+      {showBarcodeScanner && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-slate-900 text-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-700 space-y-4 text-center">
+            <h3 className="text-base font-bold">Inpatient Barcode Scanner</h3>
+            <div className="w-48 h-48 mx-auto border-2 border-dashed border-cyan-400 rounded-2xl flex flex-col items-center justify-center bg-slate-800/80 relative overflow-hidden">
+              <div className="absolute inset-x-0 h-1 bg-cyan-400 animate-bounce"></div>
+              <span className="material-symbols-outlined text-[48px] text-cyan-300">qr_code_scanner</span>
+              <span className="text-[11px] text-slate-300 mt-2 font-mono">Align Patient Wristband / Vial QR</span>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowBarcodeScanner(false)}
+                className="flex-1 py-2 bg-slate-800 text-slate-300 text-xs rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowBarcodeScanner(false);
+                  const firstMedTask = medTasks[0];
+                  if (firstMedTask) {
+                    handleAdministerMedTask(firstMedTask);
+                  }
+                }}
+                className="flex-1 py-2 bg-[#003d9b] text-white text-xs font-bold rounded-xl"
+              >
+                Simulate Scan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Patient Registration Modal in Main App */}
+      <PatientRegistrationModal
+        isOpen={isRegisterPatientOpen}
+        onClose={() => setIsRegisterPatientOpen(false)}
+        onRegisterPatient={(newPatient) => {
+          setPatients((prev) => [newPatient, ...prev]);
+          setSelectedPatientId(newPatient.id);
+          showToast(`Patient ${newPatient.name} admitted to ${newPatient.ward}!`, 'SUCCESS');
         }}
       />
 

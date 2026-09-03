@@ -1,22 +1,22 @@
 import React, { useState } from 'react';
-import { 
-  MedicationOrder, 
-  AdministrationSlot, 
-  Patient, 
-  ClinicalStaff 
+import {
+  MedicationOrder,
+  AdministrationSlot,
+  Patient,
+  ClinicalStaff
 } from '../types/medication';
-import { 
-  CheckCircle2, 
-  ShieldCheck, 
-  Barcode, 
-  AlertTriangle, 
-  X, 
-  Heart, 
-  Activity, 
-  Key, 
-  Check, 
-  HelpCircle, 
-  UserCheck, 
+import {
+  CheckCircle2,
+  ShieldCheck,
+  Barcode,
+  AlertTriangle,
+  X,
+  Heart,
+  Activity,
+  Key,
+  Check,
+  HelpCircle,
+  UserCheck,
   Sparkles,
   AlertOctagon
 } from 'lucide-react';
@@ -59,7 +59,7 @@ export const AdministrationModal: React.FC<AdministrationModalProps> = ({
   onWithholdSuccess,
 }) => {
   const [mode, setMode] = useState<'ADMINISTER' | 'WITHHOLD'>('ADMINISTER');
-  
+
   // 5 Rights checklist state
   const [scannedPatient, setScannedPatient] = useState(false);
   const [scannedMedication, setScannedMedication] = useState(false);
@@ -159,14 +159,13 @@ export const AdministrationModal: React.FC<AdministrationModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 my-8">
-        
+
         {/* Modal Header */}
         <div className="flex items-start justify-between border-b border-slate-800 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
-                mode === 'ADMINISTER' ? 'bg-teal-950 text-teal-300 border border-teal-800' : 'bg-rose-950 text-rose-300 border border-rose-800'
-              }`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${mode === 'ADMINISTER' ? 'bg-teal-950 text-teal-300 border border-teal-800' : 'bg-rose-950 text-rose-300 border border-rose-800'
+                }`}>
                 {mode === 'ADMINISTER' ? 'eMAR Administration Verification' : 'Withhold Prescription'}
               </span>
               {medication.isHighAlert && (
@@ -197,11 +196,10 @@ export const AdministrationModal: React.FC<AdministrationModalProps> = ({
           <button
             type="button"
             onClick={() => setMode('ADMINISTER')}
-            className={`py-2 rounded-xl transition flex items-center justify-center gap-2 ${
-              mode === 'ADMINISTER'
+            className={`py-2 rounded-xl transition flex items-center justify-center gap-2 ${mode === 'ADMINISTER'
                 ? 'bg-teal-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <CheckCircle2 className="w-4 h-4" />
             <span>Administer Dose</span>
@@ -210,11 +208,10 @@ export const AdministrationModal: React.FC<AdministrationModalProps> = ({
           <button
             type="button"
             onClick={() => setMode('WITHHOLD')}
-            className={`py-2 rounded-xl transition flex items-center justify-center gap-2 ${
-              mode === 'WITHHOLD'
+            className={`py-2 rounded-xl transition flex items-center justify-center gap-2 ${mode === 'WITHHOLD'
                 ? 'bg-rose-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-slate-200'
-            }`}
+              }`}
           >
             <X className="w-4 h-4" />
             <span>Withhold / Omit Dose</span>
@@ -223,7 +220,7 @@ export const AdministrationModal: React.FC<AdministrationModalProps> = ({
 
         {mode === 'ADMINISTER' ? (
           <form onSubmit={handleCompleteAdministration} className="space-y-4">
-            
+
             {/* 5 Rights Barcode Verification Section */}
             <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-4 space-y-3">
               <div className="text-xs font-bold text-slate-300 flex items-center justify-between">
@@ -233,11 +230,10 @@ export const AdministrationModal: React.FC<AdministrationModalProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {/* Scan Patient Wristband */}
-                <div className={`p-3 rounded-xl border flex items-center justify-between transition ${
-                  scannedPatient
+                <div className={`p-3 rounded-xl border flex items-center justify-between transition ${scannedPatient
                     ? 'bg-emerald-950/40 border-emerald-700/60 text-emerald-300'
                     : 'bg-slate-900 border-slate-800 text-slate-300'
-                }`}>
+                  }`}>
                   <div className="flex items-center gap-2 text-xs">
                     <Barcode className="w-4 h-4 text-teal-400" />
                     <div>
@@ -261,11 +257,10 @@ export const AdministrationModal: React.FC<AdministrationModalProps> = ({
                 </div>
 
                 {/* Scan Medication Barcode */}
-                <div className={`p-3 rounded-xl border flex items-center justify-between transition ${
-                  scannedMedication
+                <div className={`p-3 rounded-xl border flex items-center justify-between transition ${scannedMedication
                     ? 'bg-emerald-950/40 border-emerald-700/60 text-emerald-300'
                     : 'bg-slate-900 border-slate-800 text-slate-300'
-                }`}>
+                  }`}>
                   <div className="flex items-center gap-2 text-xs">
                     <Barcode className="w-4 h-4 text-cyan-400" />
                     <div>
@@ -326,9 +321,8 @@ export const AdministrationModal: React.FC<AdministrationModalProps> = ({
                     type="number"
                     value={hrInput}
                     onChange={(e) => setHrInput(e.target.value === '' ? '' : Number(e.target.value))}
-                    className={`w-full bg-slate-900 border rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none ${
-                      isHrLow ? 'border-rose-500 bg-rose-950/30' : 'border-slate-800 focus:border-teal-500'
-                    }`}
+                    className={`w-full bg-slate-900 border rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none ${isHrLow ? 'border-rose-500 bg-rose-950/30' : 'border-slate-800 focus:border-teal-500'
+                      }`}
                   />
                   {isHrLow && (
                     <p className="text-[10px] text-rose-400 font-bold mt-0.5">⚠️ Below 55 bpm!</p>
@@ -344,9 +338,8 @@ export const AdministrationModal: React.FC<AdministrationModalProps> = ({
                     type="number"
                     value={bpSysInput}
                     onChange={(e) => setBpSysInput(e.target.value === '' ? '' : Number(e.target.value))}
-                    className={`w-full bg-slate-900 border rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none ${
-                      isBpLow ? 'border-rose-500 bg-rose-950/30' : 'border-slate-800 focus:border-teal-500'
-                    }`}
+                    className={`w-full bg-slate-900 border rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none ${isBpLow ? 'border-rose-500 bg-rose-950/30' : 'border-slate-800 focus:border-teal-500'
+                      }`}
                   />
                 </div>
 
@@ -510,7 +503,7 @@ export const AdministrationModal: React.FC<AdministrationModalProps> = ({
                 <textarea
                   rows={3}
                   required
-                  placeholder="e.g. Heart Rate was 48 bpm prior to dose. Doctor Julian Ross notified and agreed to withhold morning beta-blocker."
+                  placeholder="e.g. Heart Rate was 48 bpm prior to dose. Doctor rohan Ross notified and agreed to withhold morning beta-blocker."
                   value={withholdReason}
                   onChange={(e) => setWithholdReason(e.target.value)}
                   className="w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-xs text-white focus:border-rose-500 focus:outline-none"

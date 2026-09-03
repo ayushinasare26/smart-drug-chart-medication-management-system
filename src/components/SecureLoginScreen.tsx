@@ -1,16 +1,26 @@
 import React, { useState } from 'react';
 import { ClinicalStaff } from '../types/medication';
+import { PatientProfile } from '../types/dashboard';
+import { PatientRegistrationModal } from './PatientRegistrationModal';
+import { DoctorRegistrationModal } from './DoctorRegistrationModal';
+import { PharmacistRegistrationModal } from './PharmacistRegistrationModal';
 
 interface SecureLoginScreenProps {
   onLoginSuccess: (staff: ClinicalStaff) => void;
   staffList: ClinicalStaff[];
+  onRegisterPatient?: (newPatient: PatientProfile) => void;
+  onRegisterDoctor?: (newDoctor: ClinicalStaff) => void;
+  onRegisterPharmacist?: (newPharmacist: ClinicalStaff) => void;
 }
 
 export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
   onLoginSuccess,
   staffList,
+  onRegisterPatient,
+  onRegisterDoctor,
+  onRegisterPharmacist,
 }) => {
-  const [selectedRole, setSelectedRole] = useState<'DOCTOR' | 'NURSE' | 'PATIENT'>('DOCTOR');
+  const [selectedRole, setSelectedRole] = useState<'DOCTOR' | 'NURSE' | 'PHARMACIST' | 'PATIENT'>('DOCTOR');
   const [employeeId, setEmployeeId] = useState('DOC-84729');
   const [pin, setPin] = useState('••••••');
   const [actualPin, setActualPin] = useState('9999');
@@ -18,22 +28,71 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
   const [rememberId, setRememberId] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [isBiometricScanning, setIsBiometricScanning] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showForgotPinModal, setShowForgotPinModal] = useState(false);
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [showDoctorRegistrationModal, setShowDoctorRegistrationModal] = useState(false);
+  const [showPharmacistRegistrationModal, setShowPharmacistRegistrationModal] = useState(false);
+  const [registrationSuccessMessage, setRegistrationSuccessMessage] = useState<string | null>(null);
+
+  const handleRegisterPatient = (newPatient: PatientProfile) => {
+    if (onRegisterPatient) {
+      onRegisterPatient(newPatient);
+    }
+    setRegistrationSuccessMessage(`Patient ${newPatient.name} (${newPatient.uhid}) registered successfully!`);
+    setTimeout(() => {
+      setRegistrationSuccessMessage(null);
+    }, 5000);
+  };
+
+  const handleRegisterDoctor = (newDoctor: ClinicalStaff) => {
+    if (onRegisterDoctor) {
+      onRegisterDoctor(newDoctor);
+    }
+    setSelectedRole('DOCTOR');
+    setEmployeeId(newDoctor.badgeNumber);
+    setActualPin(newDoctor.pin);
+    setPin('••••••');
+    setRegistrationSuccessMessage(`${newDoctor.name} (${newDoctor.badgeNumber}) registered successfully! Credentials pre-filled.`);
+    setTimeout(() => {
+      setRegistrationSuccessMessage(null);
+    }, 6000);
+  };
+
+  const handleRegisterPharmacist = (newPharmacist: ClinicalStaff) => {
+    if (onRegisterPharmacist) {
+      onRegisterPharmacist(newPharmacist);
+    }
+    setSelectedRole('PHARMACIST');
+    setEmployeeId(newPharmacist.badgeNumber);
+    setActualPin(newPharmacist.pin);
+    setPin('••••••');
+    setRegistrationSuccessMessage(`${newPharmacist.name} (${newPharmacist.badgeNumber}) credentialed successfully! Ready to dispense.`);
+    setTimeout(() => {
+      setRegistrationSuccessMessage(null);
+    }, 6000);
+  };
+
+  const doctorsList = staffList.filter((s) => s.role === 'DOCTOR');
+  const nursesList = staffList.filter((s) => s.role === 'NURSE' || s.role === 'CHARGE_NURSE');
+  const pharmacistsList = staffList.filter((s) => s.role === 'PHARMACIST');
 
   // Role click updates defaults for seamless testability
-  const handleRoleSelect = (role: 'DOCTOR' | 'NURSE' | 'PATIENT') => {
+  const handleRoleSelect = (role: 'DOCTOR' | 'NURSE' | 'PHARMACIST' | 'PATIENT') => {
     setSelectedRole(role);
     setErrorMessage('');
     if (role === 'DOCTOR') {
-      const doc = staffList.find((s) => s.role === 'DOCTOR') || staffList[2];
-      setEmployeeId(doc.badgeNumber || 'DOC-84729');
-      setActualPin(doc.pin || '9999');
+      const doc = doctorsList[0] || staffList.find((s) => s.role === 'DOCTOR');
+      setEmployeeId(doc?.badgeNumber || 'DOC-84729');
+      setActualPin(doc?.pin || '9999');
     } else if (role === 'NURSE') {
-      const nurse = staffList.find((s) => s.role === 'NURSE') || staffList[0];
-      setEmployeeId(nurse.badgeNumber || 'RN-88219');
-      setActualPin(nurse.pin || '1234');
+      const nurse = nursesList[0] || staffList.find((s) => s.role === 'NURSE');
+      setEmployeeId(nurse?.badgeNumber || 'RN-88219');
+      setActualPin(nurse?.pin || '1234');
+    } else if (role === 'PHARMACIST') {
+      const pharm = pharmacistsList[0] || staffList.find((s) => s.role === 'PHARMACIST');
+      setEmployeeId(pharm?.badgeNumber || 'PH-31405');
+      setActualPin(pharm?.pin || '7777');
     } else {
       const patient = staffList.find((s) => s.role === 'PATIENT') || staffList.find((s) => s.badgeNumber === 'UHID123456');
       setEmployeeId(patient?.badgeNumber || 'UHID123456');
@@ -47,9 +106,14 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
     setIsAuthenticating(true);
 
     setTimeout(() => {
-      // Find matching staff by badge number or default to current role
+      const cleanId = employeeId.trim().toLowerCase();
+
+      // 1. Find matching staff by badge number, name or id
       const matched = staffList.find(
-        (s) => s.badgeNumber.toLowerCase() === employeeId.trim().toLowerCase()
+        (s) =>
+          s.badgeNumber.toLowerCase() === cleanId ||
+          s.id.toLowerCase() === cleanId ||
+          s.name.toLowerCase() === cleanId
       );
 
       if (matched) {
@@ -58,42 +122,40 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
         return;
       }
 
-      // If custom ID entered, instantiate clinician / patient profile
+      // 2. If user entered a custom ID or new Clinician name, dynamically instantiate that profile
+      let customName = employeeId.trim();
+      if (selectedRole === 'DOCTOR') {
+        if (!customName.toLowerCase().startsWith('dr.') && !customName.toLowerCase().startsWith('dr ')) {
+          customName = `Dr. ${customName}`;
+        }
+      } else if (selectedRole === 'NURSE') {
+        if (!customName.toLowerCase().startsWith('nurse')) {
+          customName = `Nurse ${customName}`;
+        }
+      } else if (selectedRole === 'PHARMACIST') {
+        if (!customName.toLowerCase().startsWith('pharm') && !customName.includes('BPharm') && !customName.includes('PharmD')) {
+          customName = `${customName}, BPharm`;
+        }
+      }
+
       const fallbackStaff: ClinicalStaff = {
-        id: selectedRole === 'PATIENT' ? 'pat-1' : `custom-staff-${Date.now()}`,
-        name:
-          selectedRole === 'DOCTOR'
-            ? 'Dr. Sarah Chen, MD'
-            : selectedRole === 'NURSE'
-            ? 'Sarah Jenkins, RN'
-            : 'Ramesh Kumar',
-        role: selectedRole === 'DOCTOR' ? 'DOCTOR' : selectedRole === 'NURSE' ? 'NURSE' : 'PATIENT',
-        badgeNumber: employeeId.trim() || (selectedRole === 'PATIENT' ? 'UHID123456' : 'DOC-84729'),
-        department: selectedRole === 'PATIENT' ? 'Ward 3, Bed 12' : 'Ward 4B - Internal Medicine',
-        pin: actualPin || '1234',
+        id: `staff-${Date.now()}`,
+        name: customName,
+        role: selectedRole === 'DOCTOR' ? 'DOCTOR' : selectedRole === 'NURSE' ? 'NURSE' : selectedRole === 'PHARMACIST' ? 'PHARMACIST' : 'PATIENT',
+        badgeNumber: employeeId.trim().toUpperCase(),
+        department: selectedRole === 'DOCTOR' ? 'Inpatient Clinical Medicine' : selectedRole === 'PHARMACIST' ? 'Clinical Pharmacy Services' : selectedRole === 'NURSE' ? 'Ward 4B' : 'Ward 3',
+        pin: actualPin || '9999',
       };
+
+      if (onRegisterDoctor && selectedRole === 'DOCTOR') {
+        onRegisterDoctor(fallbackStaff);
+      } else if (onRegisterPharmacist && selectedRole === 'PHARMACIST') {
+        onRegisterPharmacist(fallbackStaff);
+      }
 
       setIsAuthenticating(false);
       onLoginSuccess(fallbackStaff);
-    }, 500);
-  };
-
-  const handleBiometricAuth = () => {
-    setIsBiometricScanning(true);
-    setErrorMessage('');
-
-    setTimeout(() => {
-      setIsBiometricScanning(false);
-      const matched =
-        staffList.find((s) =>
-          selectedRole === 'DOCTOR'
-            ? s.role === 'DOCTOR'
-            : selectedRole === 'NURSE'
-            ? s.role === 'NURSE'
-            : s.role === 'PATIENT'
-        ) || (selectedRole === 'PATIENT' ? staffList.find(s => s.role === 'PATIENT') : staffList[2]) || staffList[0];
-      onLoginSuccess(matched);
-    }, 800);
+    }, 400);
   };
 
   return (
@@ -143,47 +205,187 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
             </p>
           </div>
 
-          {/* Role Segmented Tabs (Doctor, Nurse, Patient) */}
-          <div className="w-full mb-5 flex items-center justify-between bg-[#f1f5f9] p-1 rounded-2xl border border-[#e2e8f0]">
+          {/* Role Segmented Tabs (Doctor, Nurse, Pharmacist, Patient) */}
+          <div className="w-full mb-5 grid grid-cols-4 gap-1 bg-[#f1f5f9] p-1 rounded-2xl border border-[#e2e8f0]">
             <button
               type="button"
               onClick={() => handleRoleSelect('DOCTOR')}
-              className={`flex-1 py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-1.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
                 selectedRole === 'DOCTOR'
                   ? 'bg-white shadow-xs text-[#003d9b] font-bold'
                   : 'text-[#64748b] hover:text-[#0f172a]'
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">stethoscope</span>
-              <span>Doctor</span>
+              <span className="truncate">Doctor</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleRoleSelect('NURSE')}
-              className={`flex-1 py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-1.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
                 selectedRole === 'NURSE'
                   ? 'bg-white shadow-xs text-[#003d9b] font-bold'
                   : 'text-[#64748b] hover:text-[#0f172a]'
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">medical_services</span>
-              <span>Nurse</span>
+              <span className="truncate">Nurse</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleRoleSelect('PHARMACIST')}
+              className={`py-2 px-1.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                selectedRole === 'PHARMACIST'
+                  ? 'bg-white shadow-xs text-[#00687a] font-bold'
+                  : 'text-[#64748b] hover:text-[#0f172a]'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">local_pharmacy</span>
+              <span className="truncate">Pharmacist</span>
             </button>
 
             <button
               type="button"
               onClick={() => handleRoleSelect('PATIENT')}
-              className={`flex-1 py-2 px-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 ${
+              className={`py-2 px-1.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
                 selectedRole === 'PATIENT'
                   ? 'bg-white shadow-xs text-[#003d9b] font-bold'
                   : 'text-[#64748b] hover:text-[#0f172a]'
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">person</span>
-              <span>Patient</span>
+              <span className="truncate">Patient</span>
             </button>
           </div>
+
+          {/* Quick Doctor Preset Selector */}
+          {selectedRole === 'DOCTOR' && doctorsList.length > 0 && (
+            <div className="w-full mb-4 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <span>Select Physician / ID:</span>
+                <span className="text-[10px] text-[#003d9b] font-mono">{doctorsList.length} Available</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-0.5 scrollbar-thin">
+                {doctorsList.map((doc) => {
+                  const isSelected = employeeId.trim().toLowerCase() === doc.badgeNumber.toLowerCase();
+                  return (
+                    <button
+                      key={doc.id}
+                      type="button"
+                      onClick={() => {
+                        setEmployeeId(doc.badgeNumber);
+                        setActualPin(doc.pin);
+                        setPin('••••••');
+                        setErrorMessage('');
+                      }}
+                      className={`p-2.5 rounded-2xl text-left border transition text-xs flex flex-col justify-between cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-50 border-[#003d9b] text-[#003d9b] ring-2 ring-[#003d9b]/20 font-bold shadow-xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[15px] text-[#003d9b]">stethoscope</span>
+                        <span className="truncate font-bold text-xs">{doc.name.replace('Dr. ', '')}</span>
+                      </div>
+                      <span className="text-[10px] font-mono font-bold text-slate-500 mt-1">{doc.badgeNumber}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Nurse Preset Selector */}
+          {selectedRole === 'NURSE' && nursesList.length > 0 && (
+            <div className="w-full mb-4 space-y-1.5">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                Select Nurse:
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                {nursesList.map((nurse) => {
+                  const isSelected = employeeId.trim().toLowerCase() === nurse.badgeNumber.toLowerCase();
+                  return (
+                    <button
+                      key={nurse.id}
+                      type="button"
+                      onClick={() => {
+                        setEmployeeId(nurse.badgeNumber);
+                        setActualPin(nurse.pin);
+                        setPin('••••••');
+                        setErrorMessage('');
+                      }}
+                      className={`p-2.5 rounded-2xl text-left border transition text-xs flex flex-col justify-between cursor-pointer ${
+                        isSelected
+                          ? 'bg-blue-50 border-[#003d9b] text-[#003d9b] ring-2 ring-[#003d9b]/20 font-bold shadow-xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <span className="truncate font-bold text-xs">{nurse.name}</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-500 mt-1">{nurse.badgeNumber}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Pharmacist Preset Selector */}
+          {selectedRole === 'PHARMACIST' && (
+            <div className="w-full mb-4 space-y-1.5">
+              <div className="flex items-center justify-between text-[11px] font-bold text-teal-800 uppercase tracking-wider">
+                <span>Duty Pharmacist / Dispensary:</span>
+                <span className="text-[10px] text-[#00687a] font-mono">{pharmacistsList.length > 0 ? pharmacistsList.length : 1} Active</span>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                {(pharmacistsList.length > 0
+                  ? pharmacistsList
+                  : [
+                      {
+                        id: 'staff-4',
+                        name: 'Priya Patel, BPharm',
+                        role: 'PHARMACIST' as const,
+                        badgeNumber: 'PH-31405',
+                        department: 'Clinical Pharmacy Services',
+                        pin: '7777',
+                      },
+                    ]
+                ).map((pharm) => {
+                  const isSelected = employeeId.trim().toLowerCase() === pharm.badgeNumber.toLowerCase();
+                  return (
+                    <button
+                      key={pharm.id}
+                      type="button"
+                      onClick={() => {
+                        setEmployeeId(pharm.badgeNumber);
+                        setActualPin(pharm.pin);
+                        setPin('••••••');
+                        setErrorMessage('');
+                      }}
+                      className={`p-2.5 rounded-2xl text-left border transition text-xs flex items-center justify-between cursor-pointer ${
+                        isSelected
+                          ? 'bg-teal-50 border-[#00687a] text-[#00687a] ring-2 ring-[#00687a]/20 font-bold shadow-xs'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-xl bg-teal-100/80 text-[#00687a] flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[16px]">local_pharmacy</span>
+                        </div>
+                        <div>
+                          <span className="font-bold text-xs block text-slate-900">{pharm.name}</span>
+                          <span className="text-[10px] text-slate-500 font-medium">{pharm.department || 'Clinical Pharmacy & Dispensing'}</span>
+                        </div>
+                      </div>
+                      <span className="text-[11px] font-mono font-extrabold text-[#00687a] bg-white px-2 py-0.5 rounded-md border border-teal-200">{pharm.badgeNumber}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Error Notice */}
           {errorMessage && (
@@ -206,7 +408,7 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
               </label>
               <div className="relative rounded-2xl border border-[#cbd5e1] bg-white transition flex items-center h-12 px-3.5 focus-within:border-[#003d9b] focus-within:ring-2 focus-within:ring-[#003d9b]/15">
                 <span className="material-symbols-outlined text-[#94a3b8] mr-2.5 text-[20px]">
-                  {selectedRole === 'PATIENT' ? 'account_circle' : 'badge'}
+                  {selectedRole === 'PATIENT' ? 'account_circle' : selectedRole === 'PHARMACIST' ? 'local_pharmacy' : 'badge'}
                 </span>
                 <input
                   id="employee-id"
@@ -218,6 +420,8 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
                       ? 'e.g. UHID123456'
                       : selectedRole === 'DOCTOR'
                       ? 'e.g. DOC-84729'
+                      : selectedRole === 'PHARMACIST'
+                      ? 'e.g. PH-31405'
                       : 'e.g. RN-88219'
                   }
                   className="w-full bg-transparent border-none p-0 text-sm sm:text-base text-[#0f172a] placeholder-[#94a3b8] focus:outline-none"
@@ -288,7 +492,11 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
             <button
               type="submit"
               disabled={isAuthenticating}
-              className="w-full h-12 sm:h-13 bg-[#003d9b] hover:bg-[#0052cc] active:scale-[0.99] text-white font-bold text-sm sm:text-base rounded-2xl shadow-lg shadow-[#003d9b]/25 transition flex items-center justify-center gap-2 cursor-pointer mt-4"
+              className={`w-full h-12 sm:h-13 font-bold text-sm sm:text-base rounded-2xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer mt-4 text-white ${
+                selectedRole === 'PHARMACIST'
+                  ? 'bg-[#00687a] hover:bg-[#00505e] shadow-[#00687a]/25'
+                  : 'bg-[#003d9b] hover:bg-[#0052cc] shadow-[#003d9b]/25'
+              }`}
             >
               {isAuthenticating ? (
                 <div className="flex items-center gap-2">
@@ -297,43 +505,82 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
                 </div>
               ) : (
                 <>
-                  <span>Authenticate</span>
+                  <span>Authenticate &amp; Enter Portal</span>
                   <span className="material-symbols-outlined text-[20px]">login</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Divider: OR ACCESS VIA */}
+          {/* Dynamic Registration Divider based on Active Role */}
           <div className="w-full flex items-center gap-3 my-5">
             <div className="h-[1px] flex-1 bg-[#e2e8f0]"></div>
             <span className="text-[10px] font-bold text-[#64748b] tracking-wider uppercase">
-              OR ACCESS VIA
+              {selectedRole === 'DOCTOR'
+                ? 'OR NEW PHYSICIAN'
+                : selectedRole === 'NURSE'
+                ? 'OR NURSING ONBOARDING'
+                : selectedRole === 'PHARMACIST'
+                ? 'OR PHARMACY CREDENTIALING'
+                : 'OR PATIENT ADMISSION'}
             </span>
             <div className="h-[1px] flex-1 bg-[#e2e8f0]"></div>
           </div>
 
-          {/* Biometric Login Button */}
-          <button
-            type="button"
-            onClick={handleBiometricAuth}
-            disabled={isBiometricScanning}
-            className="w-full h-12 border-2 border-[#00687a]/70 hover:bg-[#00687a]/5 active:scale-[0.99] text-[#00687a] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2.5 cursor-pointer bg-white"
-          >
-            {isBiometricScanning ? (
-              <div className="flex items-center gap-2 text-[#00687a]">
-                <span className="material-symbols-outlined text-[22px] animate-pulse">fingerprint</span>
-                <span className="animate-pulse">Verifying Fingerprint...</span>
-              </div>
-            ) : (
-              <>
-                <span className="material-symbols-outlined text-[22px] text-[#00687a]">
-                  fingerprint
-                </span>
-                <span>Biometric Login</span>
-              </>
-            )}
-          </button>
+          {/* Dynamic Registration Button based on Active Role */}
+          {selectedRole === 'DOCTOR' ? (
+            <button
+              type="button"
+              onClick={() => setShowDoctorRegistrationModal(true)}
+              className="w-full h-12 border-2 border-[#003d9b]/70 hover:bg-[#003d9b]/5 active:scale-[0.99] text-[#003d9b] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2.5 cursor-pointer bg-white shadow-xs"
+            >
+              <span className="material-symbols-outlined text-[22px] text-[#003d9b]">
+                stethoscope
+              </span>
+              <span>Register New Doctor</span>
+            </button>
+          ) : selectedRole === 'NURSE' ? (
+            <button
+              type="button"
+              onClick={() => setShowDoctorRegistrationModal(true)}
+              className="w-full h-12 border-2 border-[#00687a]/70 hover:bg-[#00687a]/5 active:scale-[0.99] text-[#00687a] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2.5 cursor-pointer bg-white shadow-xs"
+            >
+              <span className="material-symbols-outlined text-[22px] text-[#00687a]">
+                badge
+              </span>
+              <span>Register New Clinician</span>
+            </button>
+          ) : selectedRole === 'PHARMACIST' ? (
+            <button
+              type="button"
+              onClick={() => setShowPharmacistRegistrationModal(true)}
+              className="w-full h-12 border-2 border-[#00687a]/70 hover:bg-teal-50 active:scale-[0.99] text-[#00687a] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2.5 cursor-pointer bg-white shadow-xs"
+            >
+              <span className="material-symbols-outlined text-[22px] text-[#00687a]">
+                local_pharmacy
+              </span>
+              <span>Register New Pharmacist</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowRegistrationModal(true)}
+              className="w-full h-12 border-2 border-[#00687a]/70 hover:bg-[#00687a]/5 active:scale-[0.99] text-[#00687a] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2.5 cursor-pointer bg-white shadow-xs"
+            >
+              <span className="material-symbols-outlined text-[22px] text-[#00687a]">
+                person_add
+              </span>
+              <span>Add Patient</span>
+            </button>
+          )}
+
+          {/* Registration Success Notification Banner */}
+          {registrationSuccessMessage && (
+            <div className="mt-3 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs font-bold text-emerald-800 animate-in fade-in">
+              <span className="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
+              <span>{registrationSuccessMessage}</span>
+            </div>
+          )}
 
           {/* Security Notice */}
           <div className="mt-5 flex items-center justify-center gap-1.5 text-xs text-[#64748b]">
@@ -384,6 +631,10 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
                 <span className="font-mono text-[#003d9b] font-bold">RN-88219 / 1234</span>
               </div>
               <div className="flex justify-between">
+                <span className="font-semibold text-slate-700">Pharmacist (Priya Patel):</span>
+                <span className="font-mono text-[#00687a] font-bold">PH-31405 / 7777</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="font-semibold text-slate-700">Patient (Ramesh Kumar):</span>
                 <span className="font-mono text-[#003d9b] font-bold">UHID123456 / 1234</span>
               </div>
@@ -392,7 +643,7 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setShowForgotPinModal(false)}
-                className="px-4 py-2 bg-[#003d9b] text-white text-xs font-bold rounded-xl"
+                className="px-4 py-2 bg-[#003d9b] text-white text-xs font-bold rounded-xl cursor-pointer"
               >
                 Close
               </button>
@@ -421,7 +672,7 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
               <button
                 type="button"
                 onClick={() => setShowHelpModal(false)}
-                className="px-4 py-2 bg-[#003d9b] text-white text-xs font-bold rounded-xl"
+                className="px-4 py-2 bg-[#003d9b] text-white text-xs font-bold rounded-xl cursor-pointer"
               >
                 Understood
               </button>
@@ -429,6 +680,27 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
           </div>
         </div>
       )}
+
+      {/* Doctor Registration Form Modal */}
+      <DoctorRegistrationModal
+        isOpen={showDoctorRegistrationModal}
+        onClose={() => setShowDoctorRegistrationModal(false)}
+        onRegisterDoctor={handleRegisterDoctor}
+      />
+
+      {/* Pharmacist Registration Form Modal */}
+      <PharmacistRegistrationModal
+        isOpen={showPharmacistRegistrationModal}
+        onClose={() => setShowPharmacistRegistrationModal(false)}
+        onRegisterPharmacist={handleRegisterPharmacist}
+      />
+
+      {/* Patient Registration Form Modal */}
+      <PatientRegistrationModal
+        isOpen={showRegistrationModal}
+        onClose={() => setShowRegistrationModal(false)}
+        onRegisterPatient={handleRegisterPatient}
+      />
 
     </div>
   );
