@@ -220,22 +220,49 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
                     <p className="text-xs text-[#475569] font-medium mt-0.5">
                       {rx.dose}, {rx.route}, {rx.frequency}
                     </p>
-                    <p className="text-xs text-[#94a3b8] font-normal">
-                      Started: {rx.startDate}
-                    </p>
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-[#003d9b] font-medium">
+                      <span className="material-symbols-outlined text-[13px]">stethoscope</span>
+                      <span>{rx.prescribedBy || 'Dr. Sarah Chen, MD'}</span>
+                      <span className="text-[#94a3b8]">• {rx.startDate}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <span
-                    className={`px-2.5 py-0.5 text-xs font-medium rounded-md ${
-                      isPRN
-                        ? 'bg-[#e6f4f1] text-[#00828a]'
-                        : 'bg-[#f1f5f9] text-[#475569]'
-                    }`}
-                  >
-                    {rx.status}
-                  </span>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-1.5">
+                    {rx.pharmacyStatus === 'VERIFIED' ? (
+                      <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[13px]">verified</span>
+                        <span>Verified</span>
+                      </span>
+                    ) : rx.pharmacyStatus === 'CLARIFICATION_REQUIRED' ? (
+                      <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[13px]">help</span>
+                        <span>Clarify</span>
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-100 text-slate-600 border border-slate-200 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[13px]">hourglass_top</span>
+                        <span>Rx Pending</span>
+                      </span>
+                    )}
+
+                    {rx.dispensingStatus === 'DISPENSED' && (
+                      <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-teal-50 text-teal-700 border border-teal-200">
+                        Dispensed
+                      </span>
+                    )}
+
+                    <span
+                      className={`px-2.5 py-0.5 text-xs font-medium rounded-md ${
+                        isPRN
+                          ? 'bg-[#e6f4f1] text-[#00828a]'
+                          : 'bg-[#f1f5f9] text-[#475569]'
+                      }`}
+                    >
+                      {rx.status}
+                    </span>
+                  </div>
                 </div>
               </div>
             );

@@ -270,9 +270,10 @@ export const PharmacistPortalView: React.FC<PharmacistPortalViewProps> = ({
                           </span>
                         )}
                         <div className="text-right">
-                          <span className="text-[11px] font-bold text-slate-700 block">
-                            {rx.prescribedBy || 'Prescribed by Dr. Sarah Chen, MD'}
-                          </span>
+                          <div className="flex items-center justify-end gap-1 text-xs font-extrabold text-[#003d9b]">
+                            <span className="material-symbols-outlined text-[15px] text-[#003d9b]">stethoscope</span>
+                            <span>{rx.prescribedBy || 'Dr. Sarah Chen, MD (Inpatient Attending)'}</span>
+                          </div>
                           <span className="text-[10px] text-slate-400 font-mono">
                             {rx.startDate || 'Today'} • {rx.category}
                           </span>
@@ -560,10 +561,16 @@ export const PharmacistPortalView: React.FC<PharmacistPortalViewProps> = ({
               </button>
             </div>
 
-            <div className="text-xs text-slate-600 bg-amber-50/70 p-3 rounded-2xl border border-amber-200 space-y-1">
-              <p><strong>Patient:</strong> {clarifyingItem.patientName}</p>
-              <p><strong>Medication:</strong> {clarifyingItem.rx.drugName} ({clarifyingItem.rx.dose}, {clarifyingItem.rx.route})</p>
-              <p><strong>Prescriber:</strong> {clarifyingItem.rx.prescribedBy || 'Doctor'}</p>
+            <div className="text-xs text-slate-700 bg-amber-50/80 p-3.5 rounded-2xl border border-amber-200 space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span><strong>Patient:</strong> <span className="font-bold text-slate-900">{clarifyingItem.patientName}</span></span>
+                <span className="text-[10px] font-mono font-bold bg-amber-100/90 text-amber-900 px-2 py-0.5 rounded-md border border-amber-200">Patient ID: {clarifyingItem.patientId}</span>
+              </div>
+              <p><strong>Medication:</strong> <span className="font-bold text-[#00687a]">{clarifyingItem.rx.drugName}</span> ({clarifyingItem.rx.dose}, {clarifyingItem.rx.route}, {clarifyingItem.rx.frequency})</p>
+              <div className="flex items-center gap-1.5 pt-1.5 border-t border-amber-200/70 text-slate-800">
+                <span className="material-symbols-outlined text-[16px] text-[#003d9b]">stethoscope</span>
+                <span><strong>Prescribed by:</strong> <strong className="text-[#003d9b] font-extrabold">{clarifyingItem.rx.prescribedBy || 'Dr. Sarah Chen, MD (Inpatient Attending)'}</strong></span>
+              </div>
             </div>
 
             <div>

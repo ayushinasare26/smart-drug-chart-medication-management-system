@@ -18,7 +18,7 @@ export const PatientRegistrationModal: React.FC<PatientRegistrationModalProps> =
   const [dob, setDob] = useState('1985-05-15');
   const [bloodGroup, setBloodGroup] = useState('O+');
   const [contactPhone, setContactPhone] = useState('+1 (555) 234-8901');
-  
+
   // Hospital Assignment
   const [uhid, setUhid] = useState(() => `UHID-${Math.floor(100000 + Math.random() * 900000)}`);
   const [mrn, setMrn] = useState(() => `MRN-${Math.floor(10000000 + Math.random() * 90000000)}`);
@@ -87,7 +87,7 @@ export const PatientRegistrationModal: React.FC<PatientRegistrationModalProps> =
     setIsSubmitting(true);
 
     const calculatedAge = calculateAge(dob);
-    
+
     // Choose realistic avatar based on gender
     const avatarUrl =
       gender === 'Female'
@@ -111,13 +111,13 @@ export const PatientRegistrationModal: React.FC<PatientRegistrationModalProps> =
       isCritical: isCritical,
       allergies: hasAllergy && allergen.trim()
         ? [
-            {
-              allergen: allergen.trim(),
-              reaction: allergyReaction.trim() || 'Documented sensitivity during registration admission triage.',
-              severity: allergySeverity,
-              recordedDate: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
-            },
-          ]
+          {
+            allergen: allergen.trim(),
+            reaction: allergyReaction.trim() || 'Documented sensitivity during registration admission triage.',
+            severity: allergySeverity,
+            recordedDate: new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+          },
+        ]
         : [],
       vitals: {
         bp: `${bpSys || '120'}/${bpDia || '80'}`,
@@ -142,7 +142,7 @@ export const PatientRegistrationModal: React.FC<PatientRegistrationModalProps> =
   return (
     <div className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-200">
-        
+
         {/* Modal Header */}
         <div className="bg-gradient-to-r from-[#003d9b] to-[#00687a] p-5 sm:p-6 text-white flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -175,7 +175,7 @@ export const PatientRegistrationModal: React.FC<PatientRegistrationModalProps> =
 
         {/* Modal Body Form */}
         <form onSubmit={handleSubmit} className="p-5 sm:p-6 space-y-6 max-h-[75vh] overflow-y-auto">
-          
+
           {/* Section 1: Demographics */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 text-xs font-extrabold text-[#003d9b] tracking-wider uppercase border-b border-slate-100 pb-2">
@@ -202,9 +202,8 @@ export const PatientRegistrationModal: React.FC<PatientRegistrationModalProps> =
                       setFullName(e.target.value);
                       if (errors.fullName) setErrors((prev) => ({ ...prev, fullName: '' }));
                     }}
-                    className={`w-full h-11 pl-10 pr-3 rounded-xl bg-slate-50 border ${
-                      errors.fullName ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200'
-                    } text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#003d9b] focus:bg-white transition`}
+                    className={`w-full h-11 pl-10 pr-3 rounded-xl bg-slate-50 border ${errors.fullName ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200'
+                      } text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#003d9b] focus:bg-white transition`}
                   />
                 </div>
                 {errors.fullName && (
@@ -221,11 +220,10 @@ export const PatientRegistrationModal: React.FC<PatientRegistrationModalProps> =
                       key={g}
                       type="button"
                       onClick={() => setGender(g)}
-                      className={`h-11 rounded-xl text-xs font-bold transition border ${
-                        gender === g
-                          ? 'bg-[#003d9b] text-white border-[#003d9b] shadow-xs'
-                          : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                      }`}
+                      className={`h-11 rounded-xl text-xs font-bold transition border ${gender === g
+                        ? 'bg-[#003d9b] text-white border-[#003d9b] shadow-xs'
+                        : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                        }`}
                     >
                       {g}
                     </button>
@@ -358,8 +356,8 @@ export const PatientRegistrationModal: React.FC<PatientRegistrationModalProps> =
                   className="w-full h-11 px-3 rounded-xl bg-slate-50 border border-slate-200 text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#003d9b] focus:bg-white transition"
                 >
                   <option value="Dr. Sarah Chen, MD">Dr. Sarah Chen, MD (Cardiology)</option>
-                  <option value="Dr. Julian Ross, MD">Dr. Julian Ross, MD (Internal Med)</option>
-                  <option value="Dr. Marcus Vance, MD">Dr. Marcus Vance, MD (Surgery)</option>
+                  <option value="Dr. rohan Ross, MD">Dr. rohan Ross, MD (Internal Med)</option>
+                  <option value="Dr. Marcus singh, MD">Dr. Marcus singh, MD (Surgery)</option>
                   <option value="Dr. Aisha Patel, MD">Dr. Aisha Patel, MD (Intensivist)</option>
                 </select>
               </div>
@@ -392,9 +390,8 @@ export const PatientRegistrationModal: React.FC<PatientRegistrationModalProps> =
                     setPrimaryDiagnosis(e.target.value);
                     if (errors.primaryDiagnosis) setErrors((prev) => ({ ...prev, primaryDiagnosis: '' }));
                   }}
-                  className={`w-full h-11 px-3 rounded-xl bg-slate-50 border ${
-                    errors.primaryDiagnosis ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200'
-                  } text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#003d9b] focus:bg-white transition`}
+                  className={`w-full h-11 px-3 rounded-xl bg-slate-50 border ${errors.primaryDiagnosis ? 'border-rose-500 ring-1 ring-rose-500' : 'border-slate-200'
+                    } text-sm font-semibold text-slate-900 focus:outline-none focus:border-[#003d9b] focus:bg-white transition`}
                 />
                 {errors.primaryDiagnosis && (
                   <p className="text-[11px] text-rose-500 font-semibold mt-1">{errors.primaryDiagnosis}</p>

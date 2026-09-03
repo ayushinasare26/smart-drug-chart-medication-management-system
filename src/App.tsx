@@ -18,6 +18,7 @@ import { HospitalOperationsView } from './components/HospitalOperationsView';
 import { NewPrescriptionView } from './components/NewPrescriptionView';
 import { CriticalSafetyAlertModal } from './components/CriticalSafetyAlertModal';
 import { FiveRightsVerificationModal } from './components/FiveRightsVerificationModal';
+import { PharmacistPortalView } from './components/PharmacistPortalView';
 
 // Advanced Hospital eMAR & Drug Chart Modules
 import { SmartDrugChart } from './components/SmartDrugChart';
@@ -34,8 +35,8 @@ export default function App() {
   const [staffList, setStaffList] = useState<ClinicalStaff[]>(CLINICAL_STAFF);
   const [currentStaff, setCurrentStaff] = useState<ClinicalStaff>(CLINICAL_STAFF[0]); // Default to first doctor (Dr. Sarah Chen)
 
-  // Navigation Tabs: 'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Profile' | 'NewPrescription'
-  const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Profile'>('Home');
+  // Navigation Tabs: 'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Profile' | 'Pharmacy'
+  const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Profile' | 'Pharmacy'>('Home');
 
   // Subview State
   const [isPrescribing, setIsPrescribing] = useState<boolean>(false);
@@ -132,12 +133,93 @@ export default function App() {
       startDate: 'Today',
       category: 'REGULAR',
       instructions: data.sig,
+      prescribedBy: currentStaff.name,
+      pharmacyStatus: 'PENDING_REVIEW',
+      dispensingStatus: 'IN_STOCK',
     };
 
     setPatients((prev) =>
       prev.map((p) => (p.id === selectedPatientId ? { ...p, prescriptions: [newRx, ...p.prescriptions] } : p))
     );
-    showToast(`Prescription for ${newRx.drugName} signed & transmitted.`, 'SUCCESS');
+    showToast(`Prescription for ${newRx.drugName} signed & transmitted to Pharmacy Queue.`, 'SUCCESS');
+  };
+
+  // Pharmacist Actions
+  const handleVerifyPrescription = (patientId: string, prescriptionId: string, notes?: string) => {
+    setPatients((prev) =>
+      prev.map((p) => {
+        if (p.id !== patientId) return p;
+        return {
+          ...p,
+          prescriptions: p.prescriptions.map((rx) => {
+            if (rx.id !== prescriptionId) return rx;
+            return {
+              ...rx,
+              pharmacyStatus: 'VERIFIED',
+              verifiedBy: currentStaff.name,
+              verifiedTimestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              pharmacyNotes: notes || 'Clinical check verified & approved by Pharmacist',
+              dispensingStatus: 'IN_STOCK',
+            };
+          }),
+        };
+      })
+    );
+    showToast('Prescription verified & clinically approved for administration.', 'SUCCESS');
+  };
+
+  const handleDispensePrescription = (patientId: string, prescriptionId: string) => {
+    setPatients((prev) =>
+      prev.map((p) => {
+        if (p.id !== patientId) return p;
+        return {
+          ...p,
+          prescriptions: p.prescriptions.map((rx) => {
+            if (rx.id !== prescriptionId) return rx;
+            return {
+              ...rx,
+              pharmacyStatus: 'VERIFIED',
+              dispensingStatus: 'DISPENSED',
+              verifiedBy: rx.verifiedBy || currentStaff.name,
+            };
+          }),
+        };
+      })
+    );
+    showToast('Medication dispensed & dispatched to Ward Pyxis cabinet.', 'SUCCESS');
+  };
+
+  const handleFlagClarification = (patientId: string, prescriptionId: string, reason: string) => {
+    setPatients((prev) =>
+      prev.map((p) => {
+        if (p.id !== patientId) return p;
+        return {
+          ...p,
+          prescriptions: p.prescriptions.map((rx) => {
+            if (rx.id !== prescriptionId) return rx;
+            return {
+              ...rx,
+              pharmacyStatus: 'CLARIFICATION_REQUIRED',
+              pharmacyNotes: reason,
+            };
+          }),
+        };
+      })
+    );
+    const pat = patients.find((p) => p.id === patientId);
+    setClinicalTasks((prev) => [
+      {
+        id: `task-clarify-${Date.now()}`,
+        title: `Pharmacist Clarification: ${reason} (${pat?.name || 'Patient'})`,
+        dueTime: 'STAT',
+        badgeText: 'Rx Clarification',
+        badgeColor: 'bg-amber-100 text-amber-800',
+        completed: false,
+        patientId,
+      },
+      ...prev,
+    ]);
+    showToast(`Clarification query flagged to prescriber: "${reason}"`, 'ALERT');
   };
 
   // If not authenticated, render the Secure Login Screen
@@ -148,6 +230,10 @@ export default function App() {
         onRegisterDoctor={(newDoctor) => {
           setStaffList((prev) => [newDoctor, ...prev]);
           showToast(`${newDoctor.name} (${newDoctor.badgeNumber}) registered to Physician Directory.`, 'SUCCESS');
+        }}
+        onRegisterPharmacist={(newPharmacist) => {
+          setStaffList((prev) => [newPharmacist, ...prev]);
+          showToast(`${newPharmacist.name} (${newPharmacist.badgeNumber}) registered to Pharmacy Directory.`, 'SUCCESS');
         }}
         onRegisterPatient={(newPatient) => {
           setPatients((prev) => [newPatient, ...prev]);
@@ -162,12 +248,13 @@ export default function App() {
             return exists ? prev : [staff, ...prev];
           });
           setIsAuthenticated(true);
-          // If patient logs in, navigate directly to Patient Dashboard
+          // Role-based landing page
           if (staff.role === 'PATIENT') {
             setActiveTab('Patients');
           } else if (staff.role === 'NURSE' || staff.role === 'CHARGE_NURSE') {
-            // If nurse logs in, navigate directly to Medication Tasks dashboard
             setActiveTab('Tasks');
+          } else if (staff.role === 'PHARMACIST') {
+            setActiveTab('Pharmacy');
           } else {
             setActiveTab('Home');
           }
@@ -215,6 +302,8 @@ export default function App() {
               setActiveTab('Patients');
             } else if (currentStaff.role === 'NURSE' || currentStaff.role === 'CHARGE_NURSE') {
               setActiveTab('Tasks');
+            } else if (currentStaff.role === 'PHARMACIST') {
+              setActiveTab('Pharmacy');
             } else {
               setActiveTab('Home');
             }
@@ -233,10 +322,27 @@ export default function App() {
         {/* Header Right Actions: Quick Safety Alert Demo, Notification Bell, User Avatar */}
         <div className="flex items-center gap-3 sm:gap-4">
           
+          {/* Pharmacy Portal Direct Shortcut Button */}
+          <button
+            onClick={() => {
+              setActiveTab('Pharmacy');
+              setIsPrescribing(false);
+            }}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+              activeTab === 'Pharmacy'
+                ? 'bg-[#00687a] text-white shadow-xs'
+                : 'bg-teal-50 hover:bg-teal-100 border border-teal-200 text-[#00687a]'
+            }`}
+            title="Clinical Pharmacy Queue & Dispensing Portal"
+          >
+            <span className="material-symbols-outlined text-[16px]">local_pharmacy</span>
+            <span className="hidden sm:inline">Pharmacy Queue</span>
+          </button>
+
           {/* Quick Demo Safety Alert Trigger */}
           <button
             onClick={() => setIsSafetyAlertOpen(true)}
-            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition"
+            className="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition cursor-pointer"
             title="Demonstrate Critical Safety Alert"
           >
             <span className="material-symbols-outlined text-[16px] text-rose-600">notification_important</span>
@@ -246,7 +352,7 @@ export default function App() {
           {/* Notification Bell */}
           <button
             onClick={() => setIsSafetyAlertOpen(true)}
-            className="relative p-2 rounded-xl text-[#475569] hover:bg-slate-100 transition"
+            className="relative p-2 rounded-xl text-[#475569] hover:bg-slate-100 transition cursor-pointer"
             title="Clinical Notifications"
           >
             <span className="material-symbols-outlined text-[22px]">notifications</span>
@@ -271,7 +377,8 @@ export default function App() {
               />
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setIsAuthenticated(false);
                   showToast('Signed out of clinical session.', 'INFO');
                 }}
@@ -303,8 +410,24 @@ export default function App() {
           />
         ) : (
           <>
+            {/* VIEW: Pharmacy Portal */}
+            {(activeTab === 'Pharmacy' || (activeTab === 'Home' && currentStaff.role === 'PHARMACIST')) && (
+              <PharmacistPortalView
+                currentStaff={currentStaff}
+                patients={patients}
+                onVerifyPrescription={handleVerifyPrescription}
+                onDispensePrescription={handleDispensePrescription}
+                onFlagClarification={handleFlagClarification}
+                onOpenDrugChart={(patientId) => {
+                  setSelectedPatientId(patientId);
+                  setActiveTab('Patients');
+                  setShowFullDrugChart(true);
+                }}
+              />
+            )}
+
             {/* VIEW 1: Home Dashboard (Renders Physician Dashboard for Doctors or Medication Tasks for Nurses) */}
-            {activeTab === 'Home' && (
+            {activeTab === 'Home' && currentStaff.role !== 'PHARMACIST' && (
               currentStaff.role === 'NURSE' || currentStaff.role === 'CHARGE_NURSE' ? (
                 <MedicationTasksView
                   tasks={medTasks}
@@ -335,7 +458,7 @@ export default function App() {
                     <button
                       key={pat.id}
                       onClick={() => setSelectedPatientId(pat.id)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-2 border ${
+                      className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-2 border cursor-pointer ${
                         selectedPatientId === pat.id
                           ? 'bg-[#003d9b] text-white border-[#003d9b] shadow-xs'
                           : 'bg-white text-[#475569] border-[#e2e8f0] hover:bg-slate-50'
@@ -378,7 +501,7 @@ export default function App() {
                       </h3>
                       <button
                         onClick={() => setShowFullDrugChart(false)}
-                        className="text-xs text-[#003d9b] font-semibold hover:underline"
+                        className="text-xs text-[#003d9b] font-semibold hover:underline cursor-pointer"
                       >
                         Collapse Chart
                       </button>
@@ -456,7 +579,7 @@ export default function App() {
                         setIsAuthenticated(false);
                         showToast('Workstation locked. Session ended.', 'INFO');
                       }}
-                      className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2"
+                      className="w-full py-3 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[18px]">lock</span>
                       <span>Lock Workstation &amp; Logout</span>
@@ -472,25 +595,40 @@ export default function App() {
 
       {/* Bottom Navigation Bar (Matching Stitch prototype layout) */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#e2e8f0] px-4 py-2 flex items-center justify-around shadow-lg">
-        <button
-          onClick={() => {
-            setActiveTab('Home');
-            setIsPrescribing(false);
-          }}
-          className={`flex flex-col items-center gap-1 transition ${
-            activeTab === 'Home' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
-          }`}
-        >
-          <span className="material-symbols-outlined text-[24px]">home</span>
-          <span className="text-[11px] font-bold">Home</span>
-        </button>
+        {currentStaff.role === 'PHARMACIST' ? (
+          <button
+            onClick={() => {
+              setActiveTab('Pharmacy');
+              setIsPrescribing(false);
+            }}
+            className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+              activeTab === 'Pharmacy' && !isPrescribing ? 'text-[#00687a]' : 'text-[#64748b] hover:text-[#00687a]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[24px]">local_pharmacy</span>
+            <span className="text-[11px] font-bold">Dispensary</span>
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              setActiveTab('Home');
+              setIsPrescribing(false);
+            }}
+            className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+              activeTab === 'Home' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[24px]">home</span>
+            <span className="text-[11px] font-bold">Home</span>
+          </button>
+        )}
 
         <button
           onClick={() => {
             setActiveTab('Patients');
             setIsPrescribing(false);
           }}
-          className={`flex flex-col items-center gap-1 transition ${
+          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
             activeTab === 'Patients' || isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
           }`}
         >
@@ -500,10 +638,23 @@ export default function App() {
 
         <button
           onClick={() => {
+            setActiveTab('Pharmacy');
+            setIsPrescribing(false);
+          }}
+          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
+            activeTab === 'Pharmacy' && !isPrescribing ? 'text-[#00687a]' : 'text-[#64748b] hover:text-[#00687a]'
+          }`}
+        >
+          <span className="material-symbols-outlined text-[24px]">local_pharmacy</span>
+          <span className="text-[11px] font-bold">Pharmacy</span>
+        </button>
+
+        <button
+          onClick={() => {
             setActiveTab('Tasks');
             setIsPrescribing(false);
           }}
-          className={`flex flex-col items-center gap-1 transition ${
+          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
             activeTab === 'Tasks' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
           }`}
         >
@@ -516,7 +667,7 @@ export default function App() {
             setActiveTab('Charts');
             setIsPrescribing(false);
           }}
-          className={`flex flex-col items-center gap-1 transition ${
+          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
             activeTab === 'Charts' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
           }`}
         >
@@ -529,7 +680,7 @@ export default function App() {
             setActiveTab('Profile');
             setIsPrescribing(false);
           }}
-          className={`flex flex-col items-center gap-1 transition ${
+          className={`flex flex-col items-center gap-1 transition cursor-pointer ${
             activeTab === 'Profile' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
           }`}
         >

@@ -20,7 +20,7 @@ export const PrintDrugChartModal: React.FC<PrintDrugChartModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto print:p-0 print:bg-white print:static">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-4xl w-full p-6 shadow-2xl space-y-6 my-8 print:border-none print:shadow-none print:bg-white print:text-black print:p-4 print:my-0">
-        
+
         {/* Modal Controls (Hidden in print) */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4 print:hidden">
           <div>
@@ -51,7 +51,7 @@ export const PrintDrugChartModal: React.FC<PrintDrugChartModalProps> = ({
 
         {/* Printable Paper Document Container */}
         <div className="bg-white text-slate-900 rounded-2xl p-6 shadow-xl border border-slate-200 space-y-6 font-sans print:border-none print:shadow-none print:p-0">
-          
+
           {/* Hospital Header & Patient Identification */}
           <div className="border-b-2 border-slate-900 pb-4 flex justify-between items-start">
             <div>
@@ -163,7 +163,7 @@ export const PrintDrugChartModal: React.FC<PrintDrugChartModalProps> = ({
             <div>
               <div className="font-bold">Attending Medical Consultant / Doctor:</div>
               <div className="h-10 border-b border-slate-400 mt-2"></div>
-              <div className="text-[10px] text-slate-500 mt-1">Dr. Julian Ross, MD (MD-99120)</div>
+              <div className="text-[10px] text-slate-500 mt-1">Dr. rohan Ross, MD (MD-99120)</div>
             </div>
           </div>
 
