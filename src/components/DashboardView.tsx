@@ -44,17 +44,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             Welcome back, <span className="font-semibold text-[#003d9b]">Dr. Chen</span>. You have <span className="font-semibold text-rose-600">3 critical alerts</span>.
           </p>
         </div>
-
-        {/* + New Order Button */}
-        <div>
-          <button
-            onClick={onNewOrder}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#003d9b] hover:bg-[#0052cc] active:scale-[0.98] text-white text-sm font-semibold rounded-xl shadow-md shadow-[#003d9b]/25 transition cursor-pointer"
-          >
-            <span className="material-symbols-outlined text-[20px]">add</span>
-            <span>New Order</span>
-          </button>
-        </div>
       </div>
 
       {/* STAT Orders & Alerts Card */}

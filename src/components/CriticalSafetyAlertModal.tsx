@@ -34,33 +34,47 @@ export const CriticalSafetyAlertModal: React.FC<CriticalSafetyAlertModalProps> =
 
   return (
     <div
-      onClick={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
       className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
     >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-red-200 animate-in fade-in zoom-in-95 duration-200 my-auto relative"
-      >
+      <div className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-red-200 animate-in fade-in zoom-in-95 duration-200 my-auto">
+        
         {/* Large Red Banner Header */}
-        <div className="bg-[#ba1a1a] text-white p-6 sm:p-7 relative overflow-hidden">
-          {/* Top-Right Close Cross Button */}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close safety alert popup"
-            className="absolute top-4 right-4 sm:top-5 sm:right-5 z-20 w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-black/20 hover:bg-black/40 active:scale-95 text-white flex items-center justify-center transition-all cursor-pointer shadow-sm focus:outline-none focus:ring-2 focus:ring-white/50"
-          >
-            <span className="material-symbols-outlined text-[22px] sm:text-[24px]">close</span>
-          </button>
+        <div className="bg-[#ba1a1a] text-white p-5 sm:p-6 relative overflow-hidden">
+          {/* Top Navigation Row */}
+          <div className="relative z-20 flex items-center justify-between mb-3.5">
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/25 hover:bg-black/40 active:scale-95 text-white text-xs font-bold backdrop-blur-xs transition cursor-pointer border border-white/20 shadow-xs"
+              title="Navigate back"
+              aria-label="Navigate back"
+            >
+              <span className="material-symbols-outlined text-[18px]">arrow_back</span>
+              <span>Back</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-8 h-8 rounded-full bg-black/25 hover:bg-black/40 active:scale-95 text-white flex items-center justify-center transition cursor-pointer border border-white/20 shadow-xs"
+              title="Close alert"
+              aria-label="Close alert"
+            >
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          </div>
 
           {/* Subtle background icon */}
           <div className="absolute right-[-10px] top-[-10px] text-white/10 pointer-events-none select-none">
             <span className="material-symbols-outlined text-[130px]">warning</span>
           </div>
 
-          <div className="relative z-10 space-y-2 pr-10 sm:pr-12">
+          <div className="relative z-10 space-y-2">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[32px]">warning</span>
+              <span className="material-symbols-outlined text-[30px] sm:text-[32px]">warning</span>
               <h2 className="text-2xl sm:text-3xl font-black tracking-tight uppercase leading-none">
                 CRITICAL SAFETY ALERT
               </h2>

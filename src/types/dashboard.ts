@@ -6,8 +6,8 @@ export interface EmergencyContact {
   alternatePhone?: string;
   email?: string;
   address?: string;
-  isNextOfKin: boolean;
-  isHealthcareProxy: boolean;
+  isNextOfKin?: boolean;
+  isHealthcareProxy?: boolean;
   notes?: string;
 }
 
@@ -88,6 +88,29 @@ export interface PrescriptionItem {
   instructions?: string;
   isHighAlert?: boolean;
   specialAlert?: string;
+  prescribedBy?: string;
+  prescribedDate?: string;
+  pharmacyStatus?: 'VERIFIED' | 'PENDING_REVIEW' | 'CLARIFICATION_REQUIRED';
+  dispensingStatus?: 'IN_STOCK' | 'DISPENSED' | 'ORDERED' | 'REFRIGERATED';
+  pharmacyNotes?: string;
+  verifiedBy?: string;
+  verifiedTimestamp?: string;
+}
+
+export interface FormularyItem {
+  id: string;
+  genericName: string;
+  brandName: string;
+  strength: string;
+  form: 'Tablet' | 'Capsule' | 'IV Infusion' | 'Injection Vial' | 'Syrup' | 'Inhaler';
+  category: 'Antibiotic' | 'Cardiovascular' | 'Analgesic' | 'Anticoagulant' | 'Endocrine' | 'Respiratory' | 'GI';
+  centralStock: number;
+  wardStock: number;
+  minThreshold: number;
+  storage: 'Ambient (15-25°C)' | 'Cold Chain (2-8°C)' | 'Controlled Substance (Vault)';
+  lotNumber: string;
+  expiryDate: string;
+  stockStatus: 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK';
 }
 
 export interface StatAlertItem {
