@@ -1,3 +1,16 @@
+export interface EmergencyContact {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  alternatePhone?: string;
+  email?: string;
+  address?: string;
+  isNextOfKin: boolean;
+  isHealthcareProxy: boolean;
+  notes?: string;
+}
+
 export interface PatientProfile {
   id: string;
   name: string;
@@ -13,6 +26,7 @@ export interface PatientProfile {
   avatarUrl: string;
   primaryDiagnosis: string;
   isCritical?: boolean;
+  emergencyContacts?: EmergencyContact[];
   allergies: {
     allergen: string;
     reaction: string;

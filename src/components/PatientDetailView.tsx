@@ -1,8 +1,11 @@
 import React from 'react';
 import { PatientProfile, PrescriptionItem } from '../types/dashboard';
+import { UserRole } from '../types/medication';
 
 interface PatientDetailViewProps {
   patient: PatientProfile;
+  userRole?: UserRole | string;
+  isPatientView?: boolean;
   onPrescribeMedicine: (patient: PatientProfile) => void;
   onAddClinicalNote: (patient: PatientProfile) => void;
   onAdministerPrescription: (prescription: PrescriptionItem, patient: PatientProfile) => void;
@@ -11,11 +14,15 @@ interface PatientDetailViewProps {
 
 export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
   patient,
+  userRole,
+  isPatientView,
   onPrescribeMedicine,
   onAddClinicalNote,
   onAdministerPrescription,
   onViewAllPrescriptions,
 }) => {
+  const isPatient = userRole === 'PATIENT' || isPatientView;
+
   return (
     <div className="space-y-4 pb-20 max-w-xl mx-auto">
       {/* 1. CRITICAL ALLERGY Banner */}
@@ -81,26 +88,28 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
         </div>
       </div>
 
-      {/* 3. Action Buttons (Prescribe & Add Clinical Note) */}
-      <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-xs space-y-3">
-        <button
-          type="button"
-          onClick={() => onPrescribeMedicine(patient)}
-          className="w-full h-12 bg-[#003d9b] hover:bg-[#0052cc] active:scale-[0.99] text-white font-bold text-sm sm:text-base rounded-2xl shadow-md shadow-[#003d9b]/25 transition flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-[20px]">edit_document</span>
-          <span>Prescribe New Medicine</span>
-        </button>
+      {/* 3. Action Buttons (Prescribe & Add Clinical Note) - Only visible for clinicians, hidden in patient portal */}
+      {!isPatient && (
+        <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-xs space-y-3">
+          <button
+            type="button"
+            onClick={() => onPrescribeMedicine(patient)}
+            className="w-full h-12 bg-[#003d9b] hover:bg-[#0052cc] active:scale-[0.99] text-white font-bold text-sm sm:text-base rounded-2xl shadow-md shadow-[#003d9b]/25 transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[20px]">edit_document</span>
+            <span>Prescribe New Medicine</span>
+          </button>
 
-        <button
-          type="button"
-          onClick={() => onAddClinicalNote(patient)}
-          className="w-full h-12 bg-white hover:bg-slate-50 active:scale-[0.99] border-2 border-[#003d9b] text-[#003d9b] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-[20px]">note_add</span>
-          <span>Add Clinical Note</span>
-        </button>
-      </div>
+          <button
+            type="button"
+            onClick={() => onAddClinicalNote(patient)}
+            className="w-full h-12 bg-white hover:bg-slate-50 active:scale-[0.99] border-2 border-[#003d9b] text-[#003d9b] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[20px]">note_add</span>
+            <span>Add Clinical Note</span>
+          </button>
+        </div>
+      )}
 
       {/* 4. Vitals Section */}
       <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">
@@ -201,8 +210,14 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
             return (
               <div
                 key={rx.id}
-                onClick={() => onAdministerPrescription(rx, patient)}
-                className={`pt-3 first:pt-0 flex items-center justify-between gap-3 cursor-pointer group`}
+                onClick={() => {
+                  if (!isPatient) {
+                    onAdministerPrescription(rx, patient);
+                  }
+                }}
+                className={`pt-3 first:pt-0 flex items-center justify-between gap-3 ${
+                  isPatient ? 'cursor-default' : 'cursor-pointer group'
+                }`}
               >
                 <div className="flex items-center gap-3.5">
                   <div
@@ -214,7 +229,11 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
                   </div>
 
                   <div>
-                    <h4 className="text-sm sm:text-base font-bold text-[#0f172a] group-hover:text-[#003d9b] transition">
+                    <h4
+                      className={`text-sm sm:text-base font-bold text-[#0f172a] ${
+                        !isPatient ? 'group-hover:text-[#003d9b]' : ''
+                      } transition`}
+                    >
                       {rx.drugName}
                     </h4>
                     <p className="text-xs text-[#475569] font-medium mt-0.5">
@@ -242,6 +261,62 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
           })}
         </div>
       </div>
+
+      {/* 6. Emergency Family & Next of Kin Section */}
+      {patient.emergencyContacts && patient.emergencyContacts.length > 0 && (
+        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-rose-600 font-extrabold text-lg">
+              <span className="material-symbols-outlined text-[22px]">contact_emergency</span>
+              <span className="text-[#0f172a]">Emergency Family Details</span>
+            </div>
+            <span className="text-xs px-2.5 py-0.5 bg-rose-50 text-rose-700 font-bold rounded-full border border-rose-200">
+              Next of Kin
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {patient.emergencyContacts.map((contact) => (
+              <div
+                key={contact.id}
+                className="p-3.5 sm:p-4 rounded-2xl bg-[#f8fafc] border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 font-bold text-sm flex items-center justify-center shrink-0 shadow-2xs">
+                    {contact.name.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="text-sm sm:text-base font-bold text-[#0f172a]">{contact.name}</h4>
+                      <span className="text-xs px-2 py-0.5 bg-slate-200/80 text-slate-800 rounded-md font-medium">
+                        {contact.relationship}
+                      </span>
+                      {contact.isHealthcareProxy && (
+                        <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">
+                          Healthcare Proxy
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#64748b] mt-1 flex items-center gap-1.5 flex-wrap">
+                      <span className="material-symbols-outlined text-[15px] text-emerald-600">phone</span>
+                      <span className="font-bold text-slate-800">{contact.phone}</span>
+                      {contact.email && <span>• {contact.email}</span>}
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={`tel:${contact.phone}`}
+                  className="self-start sm:self-center inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-2xs"
+                >
+                  <span className="material-symbols-outlined text-[16px]">call</span>
+                  <span>Call Family</span>
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

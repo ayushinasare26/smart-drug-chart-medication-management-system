@@ -16,6 +16,31 @@ export const CLINICAL_PATIENTS: PatientProfile[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
     primaryDiagnosis: 'Acute Coronary Syndrome / Post-PCI & Type 2 Diabetes',
     isCritical: true,
+    emergencyContacts: [
+      {
+        id: 'ec-1',
+        name: 'Priya Kumar',
+        relationship: 'Spouse / Wife',
+        phone: '+1 (555) 839-2041',
+        alternatePhone: '+1 (555) 839-2042',
+        email: 'priya.kumar@email.com',
+        address: '42 Blossom Heights, Apt 4B, Metro City',
+        isNextOfKin: true,
+        isHealthcareProxy: true,
+        notes: 'Available 24/7. Holds designated Medical Power of Attorney (MPOA).',
+      },
+      {
+        id: 'ec-2',
+        name: 'Rohan Kumar',
+        relationship: 'Son (Adult)',
+        phone: '+1 (555) 492-1083',
+        email: 'rohan.k@email.com',
+        address: '108 University Ave, West Wing',
+        isNextOfKin: false,
+        isHealthcareProxy: false,
+        notes: 'Secondary emergency contact. Reached during evening hours.',
+      },
+    ],
     allergies: [
       {
         allergen: 'Penicillin',
@@ -88,6 +113,19 @@ export const CLINICAL_PATIENTS: PatientProfile[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80',
     primaryDiagnosis: 'MRSA Sepsis & Cellulitis',
     isCritical: false,
+    emergencyContacts: [
+      {
+        id: 'ec-3',
+        name: 'Carlos Garcia',
+        relationship: 'Husband / Next of Kin',
+        phone: '+1 (555) 714-9923',
+        email: 'carlos.garcia@email.com',
+        address: '1540 Ocean Drive, Bay Area',
+        isNextOfKin: true,
+        isHealthcareProxy: true,
+        notes: 'Primary family contact.',
+      },
+    ],
     allergies: [
       {
         allergen: 'Sulfa Drugs',
@@ -148,6 +186,19 @@ export const CLINICAL_PATIENTS: PatientProfile[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
     primaryDiagnosis: 'Atrial Fibrillation with RVR & Heart Failure',
     isCritical: false,
+    emergencyContacts: [
+      {
+        id: 'ec-4',
+        name: 'Grace Lee',
+        relationship: 'Daughter / Next of Kin',
+        phone: '+1 (555) 620-3381',
+        email: 'grace.lee@email.com',
+        address: '88 Pine Street, Suite 12',
+        isNextOfKin: true,
+        isHealthcareProxy: true,
+        notes: 'Designated healthcare surrogate.',
+      },
+    ],
     allergies: [],
     vitals: {
       bp: '124/80',
@@ -201,6 +252,19 @@ export const CLINICAL_PATIENTS: PatientProfile[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&auto=format&fit=crop&q=80',
     primaryDiagnosis: 'Severe Anaphylactic Shock / Acute Reaction',
     isCritical: true,
+    emergencyContacts: [
+      {
+        id: 'ec-5',
+        name: 'Martha Davis',
+        relationship: 'Spouse / Next of Kin',
+        phone: '+1 (555) 912-4029',
+        email: 'martha.davis@email.com',
+        address: '320 Highland Way',
+        isNextOfKin: true,
+        isHealthcareProxy: true,
+        notes: 'Primary emergency contact.',
+      },
+    ],
     allergies: [
       {
         allergen: 'Penicillin',
@@ -248,6 +312,19 @@ export const CLINICAL_PATIENTS: PatientProfile[] = [
     admittedDate: 'Oct 27, 2023',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80',
     primaryDiagnosis: 'Hypertension & Renal Artery Stenosis evaluation',
+    emergencyContacts: [
+      {
+        id: 'ec-6',
+        name: 'Alicia Johnson',
+        relationship: 'Sister / Next of Kin',
+        phone: '+1 (555) 304-8819',
+        email: 'alicia.j@email.com',
+        address: '512 Elm Street',
+        isNextOfKin: true,
+        isHealthcareProxy: false,
+        notes: 'Emergency contact.',
+      },
+    ],
     allergies: [],
     vitals: {
       bp: '154/96',
