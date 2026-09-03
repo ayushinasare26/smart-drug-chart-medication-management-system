@@ -20,6 +20,7 @@ import { CriticalSafetyAlertModal } from './components/CriticalSafetyAlertModal'
 import { FiveRightsVerificationModal } from './components/FiveRightsVerificationModal';
 import { EmergencyFamilyDetailsCard } from './components/EmergencyFamilyDetailsCard';
 import { PatientQRScannerModal } from './components/PatientQRScannerModal';
+import { DoctorAnalysisDashboard } from './components/DoctorAnalysisDashboard';
 
 // Advanced Hospital eMAR & Drug Chart Modules
 import { SmartDrugChart } from './components/SmartDrugChart';
@@ -34,8 +35,8 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false); // Starts at Secure Login screen
   const [currentStaff, setCurrentStaff] = useState<ClinicalStaff>(CLINICAL_STAFF[2]); // Dr. Sarah Chen / Dr. Julian Ross
 
-  // Navigation Tabs: 'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Profile' | 'NewPrescription'
-  const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Profile'>('Home');
+  // Navigation Tabs: 'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Analysis' | 'Profile'
+  const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Analysis' | 'Profile'>('Home');
 
   // Subview State
   const [isPrescribing, setIsPrescribing] = useState<boolean>(false);
@@ -417,9 +418,13 @@ export default function App() {
               />
             )}
 
-            {/* VIEW 4: Charts / Operations Analytics */}
-            {activeTab === 'Charts' && (
-              <HospitalOperationsView />
+            {/* VIEW 4: Analysis / Charts & Operations Analytics */}
+            {(activeTab === 'Charts' || activeTab === 'Analysis') && (
+              currentStaff.role === 'DOCTOR' ? (
+                <DoctorAnalysisDashboard />
+              ) : (
+                <HospitalOperationsView />
+              )
             )}
 
             {/* VIEW 5: Profile & Workstation Controls */}
@@ -619,15 +624,21 @@ export default function App() {
 
             <button
               onClick={() => {
-                setActiveTab('Charts');
+                setActiveTab(currentStaff.role === 'DOCTOR' ? 'Analysis' : 'Charts');
                 setIsPrescribing(false);
               }}
               className={`flex flex-col items-center gap-1 transition ${
-                activeTab === 'Charts' && !isPrescribing ? 'text-[#003d9b]' : 'text-[#64748b] hover:text-[#003d9b]'
+                (activeTab === 'Charts' || activeTab === 'Analysis') && !isPrescribing
+                  ? 'text-[#003d9b]'
+                  : 'text-[#64748b] hover:text-[#003d9b]'
               }`}
             >
-              <span className="material-symbols-outlined text-[24px]">analytics</span>
-              <span className="text-[11px] font-bold">Charts</span>
+              <span className="material-symbols-outlined text-[24px]">
+                {currentStaff.role === 'DOCTOR' ? 'query_stats' : 'analytics'}
+              </span>
+              <span className="text-[11px] font-bold">
+                {currentStaff.role === 'DOCTOR' ? 'Analysis' : 'Charts'}
+              </span>
             </button>
 
             <button
