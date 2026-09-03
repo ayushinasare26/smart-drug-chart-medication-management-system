@@ -11,6 +11,28 @@ export interface EmergencyContact {
   notes?: string;
 }
 
+export interface PastPrescriptionItem {
+  id: string;
+  drugName: string;
+  dose: string;
+  route: string;
+  frequency: string;
+  period: string;
+  indication: string;
+  outcome: 'Completed Course' | 'Discontinued' | 'Switched' | 'Tapered Off';
+  prescribedBy?: string;
+  notes?: string;
+}
+
+export interface PastMedicalHistory {
+  id: string;
+  condition: string;
+  year: string;
+  category: 'SURGERY' | 'CHRONIC_CONDITION' | 'PAST_ILLNESS' | 'HOSPITALIZATION';
+  notes?: string;
+  doctor?: string;
+}
+
 export interface PatientProfile {
   id: string;
   name: string;
@@ -27,6 +49,8 @@ export interface PatientProfile {
   primaryDiagnosis: string;
   isCritical?: boolean;
   emergencyContacts?: EmergencyContact[];
+  pastPrescriptions?: PastPrescriptionItem[];
+  medicalHistory?: PastMedicalHistory[];
   allergies: {
     allergen: string;
     reaction: string;

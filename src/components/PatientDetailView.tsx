@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PatientProfile, PrescriptionItem } from '../types/dashboard';
 import { UserRole } from '../types/medication';
 
@@ -22,6 +22,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
   onViewAllPrescriptions,
 }) => {
   const isPatient = userRole === 'PATIENT' || isPatientView;
+  const [historyTab, setHistoryTab] = useState<'PRESCRIPTIONS' | 'MEDICAL'>('PRESCRIPTIONS');
 
   return (
     <div className="space-y-4 pb-20 max-w-xl mx-auto">
@@ -37,7 +38,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
             </h3>
             <p className="text-xs sm:text-sm text-[#991b1b] mt-1 leading-relaxed font-normal">
               {patient.allergies[0].reaction ||
-                'Patient has a documented severe anaphylactic reaction to Penicillin and related antibiotics. Do not prescribe.'}
+                'Patient has a documented severe anaphylactic reaction to Penicillin and related antibiotics.'}
             </p>
           </div>
         </div>
@@ -215,9 +216,8 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
                     onAdministerPrescription(rx, patient);
                   }
                 }}
-                className={`pt-3 first:pt-0 flex items-center justify-between gap-3 ${
-                  isPatient ? 'cursor-default' : 'cursor-pointer group'
-                }`}
+                className={`pt-3 first:pt-0 flex items-center justify-between gap-3 ${isPatient ? 'cursor-default' : 'cursor-pointer group'
+                  }`}
               >
                 <div className="flex items-center gap-3.5">
                   <div
@@ -230,9 +230,8 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
 
                   <div>
                     <h4
-                      className={`text-sm sm:text-base font-bold text-[#0f172a] ${
-                        !isPatient ? 'group-hover:text-[#003d9b]' : ''
-                      } transition`}
+                      className={`text-sm sm:text-base font-bold text-[#0f172a] ${!isPatient ? 'group-hover:text-[#003d9b]' : ''
+                        } transition`}
                     >
                       {rx.drugName}
                     </h4>
@@ -247,11 +246,10 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
 
                 <div>
                   <span
-                    className={`px-2.5 py-0.5 text-xs font-medium rounded-md ${
-                      isPRN
+                    className={`px-2.5 py-0.5 text-xs font-medium rounded-md ${isPRN
                         ? 'bg-[#e6f4f1] text-[#00828a]'
                         : 'bg-[#f1f5f9] text-[#475569]'
-                    }`}
+                      }`}
                   >
                     {rx.status}
                   </span>
@@ -262,61 +260,185 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
         </div>
       </div>
 
-      {/* 6. Emergency Family & Next of Kin Section */}
-      {patient.emergencyContacts && patient.emergencyContacts.length > 0 && (
-        <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-rose-600 font-extrabold text-lg">
-              <span className="material-symbols-outlined text-[22px]">contact_emergency</span>
-              <span className="text-[#0f172a]">Emergency Family Details</span>
+      {/* 6. Previous Medical & Prescription History Section */}
+      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-100 shadow-xs space-y-4">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-[#003d9b]/10 text-[#003d9b] flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[22px]">history_edu</span>
             </div>
-            <span className="text-xs px-2.5 py-0.5 bg-rose-50 text-rose-700 font-bold rounded-full border border-rose-200">
-              Next of Kin
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {patient.emergencyContacts.map((contact) => (
-              <div
-                key={contact.id}
-                className="p-3.5 sm:p-4 rounded-2xl bg-[#f8fafc] border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-700 font-bold text-sm flex items-center justify-center shrink-0 shadow-2xs">
-                    {contact.name.charAt(0)}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="text-sm sm:text-base font-bold text-[#0f172a]">{contact.name}</h4>
-                      <span className="text-xs px-2 py-0.5 bg-slate-200/80 text-slate-800 rounded-md font-medium">
-                        {contact.relationship}
-                      </span>
-                      {contact.isHealthcareProxy && (
-                        <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold">
-                          Healthcare Proxy
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-[#64748b] mt-1 flex items-center gap-1.5 flex-wrap">
-                      <span className="material-symbols-outlined text-[15px] text-emerald-600">phone</span>
-                      <span className="font-bold text-slate-800">{contact.phone}</span>
-                      {contact.email && <span>• {contact.email}</span>}
-                    </p>
-                  </div>
-                </div>
-
-                <a
-                  href={`tel:${contact.phone}`}
-                  className="self-start sm:self-center inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-2xs"
-                >
-                  <span className="material-symbols-outlined text-[16px]">call</span>
-                  <span>Call Family</span>
-                </a>
-              </div>
-            ))}
+            <div>
+              <h3 className="text-base sm:text-lg font-extrabold text-[#0f172a]">
+                Previous History &amp; Past Prescriptions
+              </h3>
+              <p className="text-xs text-[#64748b]">
+                Past medication courses, discontinued regimens &amp; clinical history
+              </p>
+            </div>
           </div>
         </div>
-      )}
+
+        {/* Tab Toggle */}
+        <div className="flex items-center bg-slate-100 p-1 rounded-2xl">
+          <button
+            type="button"
+            onClick={() => setHistoryTab('PRESCRIPTIONS')}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              historyTab === 'PRESCRIPTIONS'
+                ? 'bg-white text-[#003d9b] shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[17px]">medication</span>
+            <span>Past Prescriptions ({patient.pastPrescriptions?.length || 0})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setHistoryTab('MEDICAL')}
+            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+              historyTab === 'MEDICAL'
+                ? 'bg-white text-[#003d9b] shadow-xs'
+                : 'text-slate-600 hover:text-slate-900'
+            }`}
+          >
+            <span className="material-symbols-outlined text-[17px]">medical_information</span>
+            <span>Past Medical &amp; Surgeries ({patient.medicalHistory?.length || 0})</span>
+          </button>
+        </div>
+
+        {/* Content: Past Prescriptions */}
+        {historyTab === 'PRESCRIPTIONS' && (
+          <div className="space-y-3 divide-y divide-slate-100">
+            {patient.pastPrescriptions && patient.pastPrescriptions.length > 0 ? (
+              patient.pastPrescriptions.map((pastRx) => {
+                const isDiscontinued = pastRx.outcome === 'Discontinued';
+                const isCompleted = pastRx.outcome === 'Completed Course';
+                const isSwitched = pastRx.outcome === 'Switched';
+
+                return (
+                  <div
+                    key={pastRx.id}
+                    className="pt-3.5 first:pt-0 space-y-2 p-3 rounded-2xl hover:bg-slate-50/80 transition border border-transparent hover:border-slate-100"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div
+                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 mt-0.5 shadow-2xs ${
+                            isDiscontinued
+                              ? 'bg-rose-100 text-rose-700'
+                              : isCompleted
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : isSwitched
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          <span className="material-symbols-outlined text-[20px]">
+                            {isDiscontinued ? 'cancel' : isCompleted ? 'check_circle' : 'swap_horiz'}
+                          </span>
+                        </div>
+
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h4 className="text-sm sm:text-base font-extrabold text-[#0f172a]">
+                              {pastRx.drugName}
+                            </h4>
+                            <span
+                              className={`px-2.5 py-0.5 text-[11px] font-bold rounded-md ${
+                                isDiscontinued
+                                  ? 'bg-rose-100 text-rose-800 border border-rose-200'
+                                  : isCompleted
+                                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                                  : isSwitched
+                                  ? 'bg-amber-100 text-amber-800 border border-amber-200'
+                                  : 'bg-slate-100 text-slate-800'
+                              }`}
+                            >
+                              {pastRx.outcome}
+                            </span>
+                          </div>
+
+                          <p className="text-xs text-[#475569] font-medium mt-0.5">
+                            {pastRx.dose}, {pastRx.route} • {pastRx.frequency}
+                          </p>
+
+                          <div className="flex items-center gap-1.5 flex-wrap text-xs text-slate-500 mt-1">
+                            <span className="material-symbols-outlined text-[14px] text-slate-400">calendar_month</span>
+                            <span className="font-semibold text-slate-700">{pastRx.period}</span>
+                            <span>• Indication: <strong className="text-slate-800 font-semibold">{pastRx.indication}</strong></span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notes / Prescribed by box */}
+                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/60 text-xs text-slate-600 space-y-1">
+                      {pastRx.prescribedBy && (
+                        <div className="flex items-center gap-1.5 text-slate-700 font-semibold">
+                          <span className="material-symbols-outlined text-[15px] text-[#003d9b]">person</span>
+                          <span>Prescribed by: {pastRx.prescribedBy}</span>
+                        </div>
+                      )}
+                      {pastRx.notes && (
+                        <p className="text-[11px] text-slate-500 leading-relaxed italic">
+                          "{pastRx.notes}"
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-6 text-center text-xs text-slate-500">
+                No past prescription records available for this patient.
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Content: Medical & Surgical History */}
+        {historyTab === 'MEDICAL' && (
+          <div className="space-y-3">
+            {patient.medicalHistory && patient.medicalHistory.length > 0 ? (
+              patient.medicalHistory.map((med) => (
+                <div
+                  key={med.id}
+                  className="p-3.5 sm:p-4 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3"
+                >
+                  <div className="w-10 h-10 rounded-2xl bg-blue-100 text-[#003d9b] flex items-center justify-center shrink-0 mt-0.5 font-bold shadow-2xs">
+                    <span className="material-symbols-outlined text-[20px]">
+                      {med.category === 'SURGERY' ? 'healing' : 'cardiology'}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <h4 className="text-sm sm:text-base font-bold text-[#0f172a]">{med.condition}</h4>
+                      <span className="text-xs px-2.5 py-0.5 bg-white border border-slate-200 rounded-full font-bold text-slate-700">
+                        {med.year}
+                      </span>
+                    </div>
+                    {med.doctor && (
+                      <p className="text-xs text-[#003d9b] font-semibold mt-0.5">
+                        Attending / Specialist: {med.doctor}
+                      </p>
+                    )}
+                    {med.notes && (
+                      <p className="text-xs text-[#475569] mt-1 leading-relaxed">
+                        {med.notes}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-6 text-center text-xs text-slate-500">
+                No prior surgical or chronic history recorded.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
