@@ -19,6 +19,7 @@ import { NewPrescriptionView } from './components/NewPrescriptionView';
 import { CriticalSafetyAlertModal } from './components/CriticalSafetyAlertModal';
 import { FiveRightsVerificationModal } from './components/FiveRightsVerificationModal';
 import { EmergencyFamilyDetailsCard } from './components/EmergencyFamilyDetailsCard';
+import { PatientQRScannerModal } from './components/PatientQRScannerModal';
 
 // Advanced Hospital eMAR & Drug Chart Modules
 import { SmartDrugChart } from './components/SmartDrugChart';
@@ -111,9 +112,45 @@ export default function App() {
   const handleCompleteFiveRights = () => {
     setIsFiveRightsOpen(false);
     if (verifyingPrescription && verifyingPatient) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       showToast(`Administered ${verifyingPrescription.drugName} to ${verifyingPatient.name}. 5 Rights verified.`, 'SUCCESS');
-      // Remove from medTasks if present
-      setMedTasks((prev) => prev.filter((t) => t.patientId !== verifyingPatient.id || t.drugName !== verifyingPrescription.drugName));
+      
+      // Update task to COMPLETED status with nurse signature and time
+      setMedTasks((prev) => {
+        const existing = prev.find((t) => t.patientId === verifyingPatient.id && t.drugName.toLowerCase() === verifyingPrescription.drugName.toLowerCase());
+        if (existing) {
+          return prev.map((t) =>
+            t.id === existing.id
+              ? {
+                  ...t,
+                  statusType: 'COMPLETED' as const,
+                  administeredAt: `${timeStr} by ${currentStaff.name}`,
+                  timeLabel: `COMPLETED • ${timeStr}`,
+                }
+              : t
+          );
+        } else {
+          const newCompletedTask: MedicationAdminTask = {
+            id: `med-task-comp-${Date.now()}`,
+            patientId: verifyingPatient.id,
+            patientName: verifyingPatient.name,
+            roomBed: `${verifyingPatient.ward} • ${verifyingPatient.roomBed}`,
+            patientDob: verifyingPatient.dob,
+            patientAvatar: verifyingPatient.avatarUrl,
+            drugName: verifyingPrescription.drugName,
+            doseRoute: `${verifyingPrescription.dose} ${verifyingPrescription.route}`,
+            statusType: 'COMPLETED',
+            timeLabel: `COMPLETED • ${timeStr}`,
+            scheduledTime: verifyingPrescription.timing || 'Scheduled',
+            administeredAt: `${timeStr} by ${currentStaff.name}`,
+            frequency: verifyingPrescription.frequency || 'Once daily',
+            timesPerDay: 'Administered',
+            prescriptionId: verifyingPrescription.id,
+          };
+          return [newCompletedTask, ...prev];
+        }
+      });
     }
   };
 
@@ -678,39 +715,20 @@ export default function App() {
         </div>
       )}
 
-      {/* Barcode Scanner Modal Simulation */}
-      {showBarcodeScanner && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-slate-900 text-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-700 space-y-4 text-center">
-            <h3 className="text-base font-bold">Inpatient Barcode Scanner</h3>
-            <div className="w-48 h-48 mx-auto border-2 border-dashed border-cyan-400 rounded-2xl flex flex-col items-center justify-center bg-slate-800/80 relative overflow-hidden">
-              <div className="absolute inset-x-0 h-1 bg-cyan-400 animate-bounce"></div>
-              <span className="material-symbols-outlined text-[48px] text-cyan-300">qr_code_scanner</span>
-              <span className="text-[11px] text-slate-300 mt-2 font-mono">Align Patient Wristband / Vial QR</span>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowBarcodeScanner(false)}
-                className="flex-1 py-2 bg-slate-800 text-slate-300 text-xs rounded-xl"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowBarcodeScanner(false);
-                  const firstMedTask = medTasks[0];
-                  if (firstMedTask) {
-                    handleAdministerMedTask(firstMedTask);
-                  }
-                }}
-                className="flex-1 py-2 bg-[#003d9b] text-white text-xs font-bold rounded-xl"
-              >
-                Simulate Scan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Inpatient QR Scanner Modal */}
+      <PatientQRScannerModal
+        isOpen={showBarcodeScanner}
+        onClose={() => setShowBarcodeScanner(false)}
+        patients={patients}
+        onScanPatient={(patientId) => {
+          setShowBarcodeScanner(false);
+          handleOpenPatientDetail(patientId);
+          const targetPat = patients.find((p) => p.id === patientId);
+          if (targetPat) {
+            showToast(`Patient QR Verified: ${targetPat.name} (${targetPat.uhid}) - Profile Loaded!`, 'SUCCESS');
+          }
+        }}
+      />
 
     </div>
   );

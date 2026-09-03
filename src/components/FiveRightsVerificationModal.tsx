@@ -244,11 +244,16 @@ export const FiveRightsVerificationModal: React.FC<FiveRightsVerificationModalPr
                 </div>
                 <div>
                   <span className="text-[11px] font-bold text-[#64748b] tracking-wider uppercase block">
-                    RIGHT TIME
+                    RIGHT TIME &amp; FREQUENCY
                   </span>
-                  <span className="text-sm sm:text-base font-bold text-[#0f172a]">
-                    {currentTime}
+                  <span className="text-sm sm:text-base font-bold text-[#0f172a] block">
+                    {prescription?.timing || currentTime}
                   </span>
+                  {prescription?.frequency && (
+                    <span className="text-xs text-[#003d9b] font-semibold block">
+                      {prescription.frequency}
+                    </span>
+                  )}
                 </div>
               </div>
 

@@ -22,7 +22,11 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
   onViewAllPrescriptions,
 }) => {
   const isPatient = userRole === 'PATIENT' || isPatientView;
+  const isDoctor = userRole === 'DOCTOR';
   const [historyTab, setHistoryTab] = useState<'PRESCRIPTIONS' | 'MEDICAL'>('PRESCRIPTIONS');
+  const [showQRModal, setShowQRModal] = useState(false);
+
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=SMARTMED://PATIENT/${patient.uhid}&bgcolor=ffffff&color=003d9b`;
 
   return (
     <div className="space-y-4 pb-20 max-w-xl mx-auto">
@@ -65,11 +69,16 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
           </span>
         </div>
 
-        {/* Demographics 2-Row / 2-Column Grid */}
-        <div className="w-full max-w-md grid grid-cols-2 gap-y-2 gap-x-4 text-xs sm:text-sm text-[#475569] pt-1">
+        {/* Demographics 3-Row / 2-Column Grid with Weight & Height */}
+        <div className="w-full max-w-md grid grid-cols-2 gap-y-2.5 gap-x-4 text-xs sm:text-sm text-[#475569] pt-1">
           <div className="flex items-center justify-start gap-1.5 font-medium">
             <span className="text-slate-700 font-bold">♂</span>
             <span>{patient.age} yrs, {patient.gender}</span>
+          </div>
+
+          <div className="flex items-center justify-start gap-1.5 font-semibold text-[#003d9b]">
+            <span className="material-symbols-outlined text-[18px] text-[#003d9b]">monitor_weight</span>
+            <span>Weight: {patient.weight || '78 kg (172 lbs)'}</span>
           </div>
 
           <div className="flex items-center justify-start gap-1.5 font-medium">
@@ -83,14 +92,116 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
           </div>
 
           <div className="flex items-center justify-start gap-1.5 font-medium">
+            <span className="material-symbols-outlined text-[18px] text-slate-600">straighten</span>
+            <span>{patient.height || "175 cm"} {patient.bmi ? `(BMI ${patient.bmi})` : ''}</span>
+          </div>
+
+          <div className="flex items-center justify-start gap-1.5 font-medium">
             <span className="material-symbols-outlined text-[18px] text-slate-600">calendar_month</span>
             <span>Admitted: {patient.admittedDate}</span>
           </div>
         </div>
+
+        {/* Unique Patient QR Code Wristband Card */}
+        <div className="w-full bg-[#f8fafc] rounded-2xl p-4 border border-slate-200/80 flex flex-col sm:flex-row items-center justify-between gap-3.5 text-left mt-2">
+          <div className="flex items-center gap-3.5">
+            <div className="bg-white p-1.5 rounded-xl border border-slate-200 shadow-2xs shrink-0 flex items-center justify-center">
+              <img
+                src={qrImageUrl}
+                alt={`${patient.name} QR`}
+                className="w-14 h-14 object-contain rounded-md"
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs sm:text-sm font-bold text-[#0f172a]">Patient Wristband QR</h4>
+                <span className="text-[10px] px-2 py-0.2 bg-emerald-100 text-emerald-800 font-bold rounded-full">
+                  Unique
+                </span>
+              </div>
+              <p className="text-[11px] font-mono text-[#003d9b] font-semibold mt-0.5">
+                {patient.qrCode || `SMARTMED://PATIENT/${patient.uhid}`}
+              </p>
+              <p className="text-[11px] text-slate-500">
+                Scan with scanner to open electronic profile instantly.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowQRModal(true)}
+            className="w-full sm:w-auto px-3.5 py-2 bg-white hover:bg-slate-50 active:scale-95 border border-slate-200 text-[#003d9b] font-bold text-xs rounded-xl transition shadow-2xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[16px]">qr_code_2</span>
+            <span>View Wristband</span>
+          </button>
+        </div>
       </div>
 
-      {/* 3. Action Buttons (Prescribe & Add Clinical Note) - Only visible for clinicians, hidden in patient portal */}
-      {!isPatient && (
+      {/* Digital Inpatient Wristband Modal */}
+      {showQRModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-3xl p-6 sm:p-7 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4 text-center my-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-left">
+                <span className="material-symbols-outlined text-[#003d9b] text-[22px]">badge</span>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Inpatient Digital Wristband</h3>
+                  <p className="text-[11px] text-slate-500">Ward 4B Bedside Identifier</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowQRModal(false)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[16px]">close</span>
+              </button>
+            </div>
+
+            {/* Simulated Hospital Wristband Graphic */}
+            <div className="bg-gradient-to-br from-slate-50 to-blue-50/50 p-4 rounded-2xl border-2 border-[#003d9b]/20 space-y-3 shadow-inner">
+              <div className="w-40 h-40 mx-auto bg-white p-2.5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-center">
+                <img
+                  src={qrImageUrl}
+                  alt={`${patient.name} QR code`}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <h4 className="text-base font-extrabold text-[#0f172a]">{patient.name}</h4>
+                <p className="text-xs font-mono font-bold text-[#003d9b]">
+                  {patient.uhid} • MRN: {patient.mrn}
+                </p>
+                <div className="flex items-center justify-center gap-2 text-xs text-slate-600 font-medium flex-wrap pt-1">
+                  <span>DOB: {patient.dob}</span>
+                  <span>•</span>
+                  <span>Blood: <strong className="text-rose-600">{patient.bloodGroup}</strong></span>
+                  <span>•</span>
+                  <span>Weight: <strong className="text-slate-800">{patient.weight || '78 kg'}</strong></span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              Scan this QR code with the hospital scanner to immediately access this patient's chart.
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setShowQRModal(false)}
+              className="w-full py-2.5 bg-[#003d9b] hover:bg-[#0052cc] active:scale-[0.99] text-white text-xs font-bold rounded-xl transition cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Action Buttons (Prescribe & Add Clinical Note) - Exclusively for Doctors/Prescribers, hidden in Nurse & Patient portals */}
+      {isDoctor && (
         <div className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-100 shadow-xs space-y-3">
           <button
             type="button"

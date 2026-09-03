@@ -41,6 +41,10 @@ export interface PatientProfile {
   dob: string;
   age: number;
   gender: string;
+  weight: string;
+  height?: string;
+  bmi?: number;
+  qrCode?: string;
   ward: string;
   roomBed: string;
   bloodGroup: string;
@@ -118,7 +122,14 @@ export interface MedicationAdminTask {
   patientAvatar: string;
   drugName: string;
   doseRoute: string;
-  statusType: 'STAT' | 'DUE_NOW' | 'OVERDUE';
+  statusType: 'STAT' | 'DUE_NOW' | 'OVERDUE' | 'MISSED' | 'COMPLETED';
   timeLabel?: string;
   prescriptionId: string;
+  scheduledTime?: string;
+  frequency?: string;
+  timesPerDay?: string;
+  timingSlots?: string;
+  administeredAt?: string;
+  missedReason?: string;
+  overdueMinutes?: number;
 }
