@@ -6,7 +6,7 @@ export type RouteType = 'Oral (PO)' | 'Intravenous (IV)' | 'Subcutaneous (SC)' |
 
 export type SeverityLevel = 'HIGH' | 'CRITICAL' | 'MODERATE' | 'INFO';
 
-export type UserRole = 'NURSE' | 'DOCTOR' | 'PHARMACIST' | 'CHARGE_NURSE' | 'PATIENT';
+export type UserRole = 'ADMIN' | 'NURSE' | 'DOCTOR' | 'PHARMACIST' | 'CHARGE_NURSE' | 'PATIENT' | 'OTHER_STAFF';
 
 export interface Allergy {
   id: string;
@@ -143,6 +143,16 @@ export interface ClinicalStaff {
   badgeNumber: string;
   department: string;
   pin: string;
+  specialty?: string;
+  licenseNumber?: string;
+  designation?: string;
+  email?: string;
+  phone?: string;
+  shift?: 'MORNING' | 'EVENING' | 'NIGHT' | 'ROTATING';
+  status?: 'ACTIVE' | 'ON_DUTY' | 'OFF_DUTY' | 'ON_LEAVE' | 'INACTIVE';
+  permissions?: string[];
+  enrolledDate?: string;
+  avatarUrl?: string;
 }
 
 export interface AdministrationLogEntry {

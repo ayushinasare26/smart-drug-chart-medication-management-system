@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { ClinicalStaff } from '../types/medication';
 import { PatientProfile } from '../types/dashboard';
 import { PatientRegistrationModal } from './PatientRegistrationModal';
-import { DoctorRegistrationModal } from './DoctorRegistrationModal';
-import { PharmacistRegistrationModal } from './PharmacistRegistrationModal';
+import { AdminStaffEnrollmentModal } from './AdminStaffEnrollmentModal';
 
 interface SecureLoginScreenProps {
   onLoginSuccess: (staff: ClinicalStaff) => void;
   staffList: ClinicalStaff[];
   onRegisterPatient?: (newPatient: PatientProfile) => void;
+  onRegisterStaff?: (newStaff: ClinicalStaff) => void;
   onRegisterDoctor?: (newDoctor: ClinicalStaff) => void;
   onRegisterPharmacist?: (newPharmacist: ClinicalStaff) => void;
 }
@@ -17,67 +17,52 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
   onLoginSuccess,
   staffList,
   onRegisterPatient,
+  onRegisterStaff,
   onRegisterDoctor,
   onRegisterPharmacist,
 }) => {
+  // Main Authentication Portal Mode (ADMIN is the primary entry gate)
+  const [loginMode, setLoginMode] = useState<'ADMIN' | 'CLINICIAN'>('ADMIN');
+
+  // Clinician sub-role state
   const [selectedRole, setSelectedRole] = useState<'DOCTOR' | 'NURSE' | 'PHARMACIST' | 'PATIENT'>('DOCTOR');
-  const [employeeId, setEmployeeId] = useState('DOC-84729');
+  
+  // Credentials
+  const [employeeId, setEmployeeId] = useState('ADM-9001');
   const [pin, setPin] = useState('••••••');
   const [actualPin, setActualPin] = useState('9999');
   const [showPin, setShowPin] = useState(false);
   const [rememberId, setRememberId] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  
+  // Modals
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [showForgotPinModal, setShowForgotPinModal] = useState(false);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  const [showDoctorRegistrationModal, setShowDoctorRegistrationModal] = useState(false);
-  const [showPharmacistRegistrationModal, setShowPharmacistRegistrationModal] = useState(false);
+  const [showStaffEnrollModal, setShowStaffEnrollModal] = useState(false);
+  const [enrollInitialRole, setEnrollInitialRole] = useState<'DOCTOR' | 'NURSE' | 'PHARMACIST' | 'OTHER_STAFF'>('DOCTOR');
   const [registrationSuccessMessage, setRegistrationSuccessMessage] = useState<string | null>(null);
 
-  const handleRegisterPatient = (newPatient: PatientProfile) => {
-    if (onRegisterPatient) {
-      onRegisterPatient(newPatient);
-    }
-    setRegistrationSuccessMessage(`Patient ${newPatient.name} (${newPatient.uhid}) registered successfully!`);
-    setTimeout(() => {
-      setRegistrationSuccessMessage(null);
-    }, 5000);
-  };
-
-  const handleRegisterDoctor = (newDoctor: ClinicalStaff) => {
-    if (onRegisterDoctor) {
-      onRegisterDoctor(newDoctor);
-    }
-    setSelectedRole('DOCTOR');
-    setEmployeeId(newDoctor.badgeNumber);
-    setActualPin(newDoctor.pin);
-    setPin('••••••');
-    setRegistrationSuccessMessage(`${newDoctor.name} (${newDoctor.badgeNumber}) registered successfully! Credentials pre-filled.`);
-    setTimeout(() => {
-      setRegistrationSuccessMessage(null);
-    }, 6000);
-  };
-
-  const handleRegisterPharmacist = (newPharmacist: ClinicalStaff) => {
-    if (onRegisterPharmacist) {
-      onRegisterPharmacist(newPharmacist);
-    }
-    setSelectedRole('PHARMACIST');
-    setEmployeeId(newPharmacist.badgeNumber);
-    setActualPin(newPharmacist.pin);
-    setPin('••••••');
-    setRegistrationSuccessMessage(`${newPharmacist.name} (${newPharmacist.badgeNumber}) credentialed successfully! Ready to dispense.`);
-    setTimeout(() => {
-      setRegistrationSuccessMessage(null);
-    }, 6000);
-  };
-
+  const adminList = staffList.filter((s) => s.role === 'ADMIN');
   const doctorsList = staffList.filter((s) => s.role === 'DOCTOR');
   const nursesList = staffList.filter((s) => s.role === 'NURSE' || s.role === 'CHARGE_NURSE');
   const pharmacistsList = staffList.filter((s) => s.role === 'PHARMACIST');
 
-  // Role click updates defaults for seamless testability
+  // Handle Mode Switch between Admin Gateway and Clinician Sign-In
+  const handleSwitchMode = (mode: 'ADMIN' | 'CLINICIAN') => {
+    setLoginMode(mode);
+    setErrorMessage('');
+    if (mode === 'ADMIN') {
+      const admin = adminList[0] || { badgeNumber: 'ADM-9001', pin: '9999' };
+      setEmployeeId(admin.badgeNumber);
+      setActualPin(admin.pin || '9999');
+      setPin('••••••');
+    } else {
+      handleRoleSelect('DOCTOR');
+    }
+  };
+
   const handleRoleSelect = (role: 'DOCTOR' | 'NURSE' | 'PHARMACIST' | 'PATIENT') => {
     setSelectedRole(role);
     setErrorMessage('');
@@ -98,6 +83,32 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
       setEmployeeId(patient?.badgeNumber || 'UHID123456');
       setActualPin(patient?.pin || '1234');
     }
+    setPin('••••••');
+  };
+
+  const handleRegisterPatient = (newPatient: PatientProfile) => {
+    if (onRegisterPatient) {
+      onRegisterPatient(newPatient);
+    }
+    setRegistrationSuccessMessage(`Patient ${newPatient.name} (${newPatient.uhid}) registered successfully!`);
+    setTimeout(() => {
+      setRegistrationSuccessMessage(null);
+    }, 5000);
+  };
+
+  const handleStaffEnrolled = (newStaff: ClinicalStaff) => {
+    if (onRegisterStaff) {
+      onRegisterStaff(newStaff);
+    } else if (onRegisterDoctor && newStaff.role === 'DOCTOR') {
+      onRegisterDoctor(newStaff);
+    } else if (onRegisterPharmacist && newStaff.role === 'PHARMACIST') {
+      onRegisterPharmacist(newStaff);
+    }
+
+    setRegistrationSuccessMessage(`${newStaff.name} (${newStaff.badgeNumber}) enrolled successfully as ${newStaff.role}!`);
+    setTimeout(() => {
+      setRegistrationSuccessMessage(null);
+    }, 6000);
   };
 
   const handleAuthenticate = (e?: React.FormEvent) => {
@@ -113,7 +124,8 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
         (s) =>
           s.badgeNumber.toLowerCase() === cleanId ||
           s.id.toLowerCase() === cleanId ||
-          s.name.toLowerCase() === cleanId
+          s.name.toLowerCase() === cleanId ||
+          (s.email && s.email.toLowerCase() === cleanId)
       );
 
       if (matched) {
@@ -122,7 +134,24 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
         return;
       }
 
-      // 2. If user entered a custom ID or new Clinician name, dynamically instantiate that profile
+      // 2. If Admin Mode and custom admin entered
+      if (loginMode === 'ADMIN') {
+        const fallbackAdmin: ClinicalStaff = {
+          id: `admin-${Date.now()}`,
+          name: employeeId.includes('@') ? employeeId.split('@')[0] : `Admin (${employeeId})`,
+          role: 'ADMIN',
+          badgeNumber: employeeId.trim().toUpperCase(),
+          department: 'Hospital Administration & Executive Directorate',
+          pin: actualPin || '9999',
+          designation: 'Hospital Administrator',
+          status: 'ACTIVE',
+        };
+        setIsAuthenticating(false);
+        onLoginSuccess(fallbackAdmin);
+        return;
+      }
+
+      // 3. If Clinician Mode and custom ID entered
       let customName = employeeId.trim();
       if (selectedRole === 'DOCTOR') {
         if (!customName.toLowerCase().startsWith('dr.') && !customName.toLowerCase().startsWith('dr ')) {
@@ -145,6 +174,7 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
         badgeNumber: employeeId.trim().toUpperCase(),
         department: selectedRole === 'DOCTOR' ? 'Inpatient Clinical Medicine' : selectedRole === 'PHARMACIST' ? 'Clinical Pharmacy Services' : selectedRole === 'NURSE' ? 'Ward 4B' : 'Ward 3',
         pin: actualPin || '9999',
+        status: 'ON_DUTY',
       };
 
       if (onRegisterDoctor && selectedRole === 'DOCTOR') {
@@ -159,124 +189,121 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#eaf2f8] via-[#eef6fc] to-[#f4f9fd] font-['Inter',sans-serif] text-[#181c1e] antialiased flex flex-col justify-between items-center relative overflow-x-hidden p-4 sm:p-6 select-none">
+    <div className="min-h-screen bg-gradient-to-b from-[#0b132b] via-[#1c2541] to-[#0f172a] font-['Inter',sans-serif] text-slate-100 antialiased flex flex-col justify-between items-center relative overflow-x-hidden p-4 sm:p-6 select-none">
       
-      {/* Background Soft Glow Accents */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-blue-100/40 rounded-full blur-3xl pointer-events-none -z-10" />
+      {/* Background Ambient Glow Accents */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-96 bg-blue-500/15 rounded-full blur-3xl pointer-events-none -z-10" />
+      <div className="absolute bottom-0 right-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
-      {/* Main Card Container */}
-      <div className="w-full max-w-[430px] my-auto pt-4 pb-2">
-        <div className="bg-white rounded-[28px] p-7 sm:p-9 shadow-xl shadow-slate-200/60 border border-slate-100 flex flex-col items-center">
-          
-          {/* Logo & Header */}
-          <div className="mb-6 flex flex-col items-center">
-            <div className="w-16 h-16 rounded-2xl bg-cyan-50/80 border border-cyan-200/70 flex flex-col items-center justify-center shadow-xs p-2.5 mb-2 hover:scale-105 transition duration-300">
-              <svg
-                viewBox="0 0 48 48"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-full h-full"
-              >
-                {/* Medical Cross in double outline rounded geometry */}
-                <path
-                  d="M18 6C18 4.89543 18.8954 4 20 4H28C29.1046 4 30 4.89543 30 6V18H42C43.1046 18 44 18.8954 44 20V28C44 29.1046 43.1046 30 42 30H30V42C30 43.1046 29.1046 44 28 44H20C18.8954 44 18 43.1046 18 42V30H6C4.89543 30 4 29.1046 4 28V20C4 18.8954 4.89543 18 6 18H18V6Z"
-                  stroke="#00828a"
-                  strokeWidth="3.5"
-                  strokeLinejoin="round"
-                />
-                <path
-                  d="M24 12V36M12 24H36"
-                  stroke="#003d9b"
-                  strokeWidth="3.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            
-            <span className="text-[11px] font-bold text-[#00828a] tracking-wide mb-2">
-              SmartMedChart
+      {/* Top Header Bar with Hospital Credentialing Tag */}
+      <div className="w-full max-w-5xl flex items-center justify-between pt-2 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-cyan-400 to-[#003d9b] flex items-center justify-center text-white shadow-md">
+            <span className="material-symbols-outlined text-[20px]">local_hospital</span>
+          </div>
+          <div>
+            <span className="font-black text-base tracking-tight text-white">
+              SmartMed<span className="text-cyan-400">Chart</span>
             </span>
-
-            <h1 className="text-3xl sm:text-[32px] font-extrabold text-[#003d9b] tracking-tight text-center leading-none">
-              SmartMedChart
-            </h1>
-            <p className="text-sm text-[#475569] text-center mt-2 font-medium">
-              Secure Clinical Portal
+            <p className="text-[10px] text-slate-400 font-mono hidden sm:block">
+              Hospital Inpatient &amp; Administration System
             </p>
           </div>
+        </div>
 
-          {/* Role Segmented Tabs (Doctor, Nurse, Pharmacist, Patient) */}
-          <div className="w-full mb-5 grid grid-cols-4 gap-1 bg-[#f1f5f9] p-1 rounded-2xl border border-[#e2e8f0]">
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-800/80 border border-slate-700 text-cyan-300 flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span>Secure Server Active</span>
+          </span>
+        </div>
+      </div>
+
+      {/* Main Login Card Container */}
+      <div className="w-full max-w-[480px] my-auto py-2">
+        <div className="bg-white/95 backdrop-blur-md rounded-[32px] p-6 sm:p-8 shadow-2xl shadow-black/50 border border-white/20 text-slate-900 flex flex-col items-center relative overflow-hidden">
+          
+          {/* Top Mode Segmented Switcher (Administrator Gateway vs Bedside Clinicians) */}
+          <div className="w-full mb-6 p-1.5 bg-slate-100 rounded-2xl border border-slate-200 grid grid-cols-2 gap-1">
             <button
               type="button"
-              onClick={() => handleRoleSelect('DOCTOR')}
-              className={`py-2 px-1.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
-                selectedRole === 'DOCTOR'
-                  ? 'bg-white shadow-xs text-[#003d9b] font-bold'
-                  : 'text-[#64748b] hover:text-[#0f172a]'
+              onClick={() => handleSwitchMode('ADMIN')}
+              className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                loginMode === 'ADMIN'
+                  ? 'bg-[#003d9b] text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[18px]">admin_panel_settings</span>
+              <span>1. Administrator</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleSwitchMode('CLINICIAN')}
+              className={`py-2 px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                loginMode === 'CLINICIAN'
+                  ? 'bg-slate-900 text-white shadow-md'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
               <span className="material-symbols-outlined text-[18px]">stethoscope</span>
-              <span className="truncate">Doctor</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleRoleSelect('NURSE')}
-              className={`py-2 px-1.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
-                selectedRole === 'NURSE'
-                  ? 'bg-white shadow-xs text-[#003d9b] font-bold'
-                  : 'text-[#64748b] hover:text-[#0f172a]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">medical_services</span>
-              <span className="truncate">Nurse</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleRoleSelect('PHARMACIST')}
-              className={`py-2 px-1.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
-                selectedRole === 'PHARMACIST'
-                  ? 'bg-white shadow-xs text-[#00687a] font-bold'
-                  : 'text-[#64748b] hover:text-[#0f172a]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">local_pharmacy</span>
-              <span className="truncate">Pharmacist</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleRoleSelect('PATIENT')}
-              className={`py-2 px-1.5 rounded-xl text-xs sm:text-[13px] font-semibold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
-                selectedRole === 'PATIENT'
-                  ? 'bg-white shadow-xs text-[#003d9b] font-bold'
-                  : 'text-[#64748b] hover:text-[#0f172a]'
-              }`}
-            >
-              <span className="material-symbols-outlined text-[18px]">person</span>
-              <span className="truncate">Patient</span>
+              <span>2. Clinical Staff</span>
             </button>
           </div>
 
-          {/* Quick Doctor Preset Selector */}
-          {selectedRole === 'DOCTOR' && doctorsList.length > 0 && (
+          {/* Mode Title & Emblem */}
+          <div className="mb-5 flex flex-col items-center text-center">
+            {loginMode === 'ADMIN' ? (
+              <>
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-slate-900 via-[#003d9b] to-[#00687a] flex items-center justify-center shadow-lg text-cyan-300 mb-3 border border-blue-300/40">
+                  <span className="material-symbols-outlined text-[32px]">shield_person</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-blue-50 text-[#003d9b] border border-blue-200 mb-1">
+                  Level 4 Root Authority
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                  Administrator Login
+                </h1>
+                <p className="text-xs text-slate-600 mt-1 max-w-xs">
+                  Sign in with your Admin ID to manage &amp; enroll doctors, nurses, pharmacists, and support staff.
+                </p>
+              </>
+            ) : (
+              <>
+                <div className="w-16 h-16 rounded-2xl bg-cyan-50 border border-cyan-200 flex items-center justify-center shadow-md text-[#003d9b] mb-3">
+                  <span className="material-symbols-outlined text-[32px]">clinical_notes</span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-teal-50 text-teal-800 border border-teal-200 mb-1">
+                  Bedside Terminal
+                </span>
+                <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight leading-tight">
+                  Clinical Staff Sign-In
+                </h1>
+                <p className="text-xs text-slate-600 mt-1 max-w-xs">
+                  Direct access for authorized physicians, nurses, and pharmacists.
+                </p>
+              </>
+            )}
+          </div>
+
+          {/* ADMIN MODE: Preset Admin Accounts Quick-Selector */}
+          {loginMode === 'ADMIN' && adminList.length > 0 && (
             <div className="w-full mb-4 space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                <span>Select Physician / ID:</span>
-                <span className="text-[10px] text-[#003d9b] font-mono">{doctorsList.length} Available</span>
+              <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-500 uppercase tracking-wider">
+                <span>Select Authorized Administrator:</span>
+                <span className="text-[10px] text-[#003d9b] font-mono font-bold">2 Preset Profiles</span>
               </div>
-              <div className="grid grid-cols-2 gap-2 max-h-36 overflow-y-auto pr-0.5 scrollbar-thin">
-                {doctorsList.map((doc) => {
-                  const isSelected = employeeId.trim().toLowerCase() === doc.badgeNumber.toLowerCase();
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {adminList.map((admin) => {
+                  const isSelected = employeeId.trim().toLowerCase() === admin.badgeNumber.toLowerCase();
                   return (
                     <button
-                      key={doc.id}
+                      key={admin.id}
                       type="button"
                       onClick={() => {
-                        setEmployeeId(doc.badgeNumber);
-                        setActualPin(doc.pin);
+                        setEmployeeId(admin.badgeNumber);
+                        setActualPin(admin.pin);
                         setPin('••••••');
                         setErrorMessage('');
                       }}
@@ -287,10 +314,12 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
                       }`}
                     >
                       <div className="flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-[15px] text-[#003d9b]">stethoscope</span>
-                        <span className="truncate font-bold text-xs">{doc.name.replace('Dr. ', '')}</span>
+                        <span className="material-symbols-outlined text-[16px] text-[#003d9b]">admin_panel_settings</span>
+                        <span className="truncate font-extrabold text-xs">{admin.name}</span>
                       </div>
-                      <span className="text-[10px] font-mono font-bold text-slate-500 mt-1">{doc.badgeNumber}</span>
+                      <span className="text-[10px] font-mono font-bold text-slate-500 mt-1">
+                        {admin.badgeNumber} • PIN: {admin.pin}
+                      </span>
                     </button>
                   );
                 })}
@@ -298,117 +327,115 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
             </div>
           )}
 
-          {/* Quick Nurse Preset Selector */}
-          {selectedRole === 'NURSE' && nursesList.length > 0 && (
-            <div className="w-full mb-4 space-y-1.5">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                Select Nurse:
-              </span>
-              <div className="grid grid-cols-2 gap-2">
-                {nursesList.map((nurse) => {
-                  const isSelected = employeeId.trim().toLowerCase() === nurse.badgeNumber.toLowerCase();
-                  return (
-                    <button
-                      key={nurse.id}
-                      type="button"
-                      onClick={() => {
-                        setEmployeeId(nurse.badgeNumber);
-                        setActualPin(nurse.pin);
-                        setPin('••••••');
-                        setErrorMessage('');
-                      }}
-                      className={`p-2.5 rounded-2xl text-left border transition text-xs flex flex-col justify-between cursor-pointer ${
-                        isSelected
-                          ? 'bg-blue-50 border-[#003d9b] text-[#003d9b] ring-2 ring-[#003d9b]/20 font-bold shadow-xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span className="truncate font-bold text-xs">{nurse.name}</span>
-                      <span className="text-[10px] font-mono font-bold text-slate-500 mt-1">{nurse.badgeNumber}</span>
-                    </button>
-                  );
-                })}
+          {/* CLINICIAN MODE: Role Tabs & Preset Selectors */}
+          {loginMode === 'CLINICIAN' && (
+            <>
+              {/* Role Tabs */}
+              <div className="w-full mb-4 grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-2xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => handleRoleSelect('DOCTOR')}
+                  className={`py-1.5 px-1 rounded-xl text-xs font-bold transition flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                    selectedRole === 'DOCTOR' ? 'bg-white shadow-xs text-[#003d9b]' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">stethoscope</span>
+                  <span className="truncate">Doctor</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleRoleSelect('NURSE')}
+                  className={`py-1.5 px-1 rounded-xl text-xs font-bold transition flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                    selectedRole === 'NURSE' ? 'bg-white shadow-xs text-emerald-700' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">medical_services</span>
+                  <span className="truncate">Nurse</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleRoleSelect('PHARMACIST')}
+                  className={`py-1.5 px-1 rounded-xl text-xs font-bold transition flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                    selectedRole === 'PHARMACIST' ? 'bg-white shadow-xs text-[#00687a]' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">local_pharmacy</span>
+                  <span className="truncate">Pharm</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleRoleSelect('PATIENT')}
+                  className={`py-1.5 px-1 rounded-xl text-xs font-bold transition flex flex-col sm:flex-row items-center justify-center gap-1 cursor-pointer ${
+                    selectedRole === 'PATIENT' ? 'bg-white shadow-xs text-[#003d9b]' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-[16px]">person</span>
+                  <span className="truncate">Patient</span>
+                </button>
               </div>
-            </div>
+
+              {/* Quick Clinician Pickers */}
+              {selectedRole === 'DOCTOR' && doctorsList.length > 0 && (
+                <div className="w-full mb-3 space-y-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
+                    Select Doctor:
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5 max-h-28 overflow-y-auto pr-0.5">
+                    {doctorsList.map((doc) => {
+                      const isSelected = employeeId.trim().toLowerCase() === doc.badgeNumber.toLowerCase();
+                      return (
+                        <button
+                          key={doc.id}
+                          type="button"
+                          onClick={() => {
+                            setEmployeeId(doc.badgeNumber);
+                            setActualPin(doc.pin);
+                            setPin('••••••');
+                            setErrorMessage('');
+                          }}
+                          className={`p-2 rounded-xl text-left border transition text-xs flex flex-col justify-between cursor-pointer ${
+                            isSelected
+                              ? 'bg-blue-50 border-[#003d9b] text-[#003d9b] font-bold shadow-xs'
+                              : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                          }`}
+                        >
+                          <span className="truncate font-bold text-xs">{doc.name.replace('Dr. ', '')}</span>
+                          <span className="text-[10px] font-mono text-slate-500">{doc.badgeNumber}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
-          {/* Quick Pharmacist Preset Selector */}
-          {selectedRole === 'PHARMACIST' && (
-            <div className="w-full mb-4 space-y-1.5">
-              <div className="flex items-center justify-between text-[11px] font-bold text-teal-800 uppercase tracking-wider">
-                <span>Duty Pharmacist / Dispensary:</span>
-                <span className="text-[10px] text-[#00687a] font-mono">{pharmacistsList.length > 0 ? pharmacistsList.length : 1} Active</span>
-              </div>
-              <div className="grid grid-cols-1 gap-2">
-                {(pharmacistsList.length > 0
-                  ? pharmacistsList
-                  : [
-                      {
-                        id: 'staff-4',
-                        name: 'Priya Patel, BPharm',
-                        role: 'PHARMACIST' as const,
-                        badgeNumber: 'PH-31405',
-                        department: 'Clinical Pharmacy Services',
-                        pin: '7777',
-                      },
-                    ]
-                ).map((pharm) => {
-                  const isSelected = employeeId.trim().toLowerCase() === pharm.badgeNumber.toLowerCase();
-                  return (
-                    <button
-                      key={pharm.id}
-                      type="button"
-                      onClick={() => {
-                        setEmployeeId(pharm.badgeNumber);
-                        setActualPin(pharm.pin);
-                        setPin('••••••');
-                        setErrorMessage('');
-                      }}
-                      className={`p-2.5 rounded-2xl text-left border transition text-xs flex items-center justify-between cursor-pointer ${
-                        isSelected
-                          ? 'bg-teal-50 border-[#00687a] text-[#00687a] ring-2 ring-[#00687a]/20 font-bold shadow-xs'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-xl bg-teal-100/80 text-[#00687a] flex items-center justify-center">
-                          <span className="material-symbols-outlined text-[16px]">local_pharmacy</span>
-                        </div>
-                        <div>
-                          <span className="font-bold text-xs block text-slate-900">{pharm.name}</span>
-                          <span className="text-[10px] text-slate-500 font-medium">{pharm.department || 'Clinical Pharmacy & Dispensing'}</span>
-                        </div>
-                      </div>
-                      <span className="text-[11px] font-mono font-extrabold text-[#00687a] bg-white px-2 py-0.5 rounded-md border border-teal-200">{pharm.badgeNumber}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Error Notice */}
+          {/* Error Message Notice */}
           {errorMessage && (
-            <div className="w-full mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
+            <div className="w-full mb-3 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2">
               <span className="material-symbols-outlined text-red-600 text-[18px]">error</span>
               <span>{errorMessage}</span>
             </div>
           )}
 
           {/* Login Form */}
-          <form onSubmit={handleAuthenticate} className="w-full space-y-4">
+          <form onSubmit={handleAuthenticate} className="w-full space-y-3.5">
             
-            {/* Employee/Patient ID Field */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="employee-id"
-                className="text-xs sm:text-sm font-bold text-[#0f172a] block"
-              >
-                {selectedRole === 'PATIENT' ? 'Patient ID / UHID' : 'Employee ID'}
+            {/* ID Field */}
+            <div className="space-y-1">
+              <label htmlFor="employee-id" className="text-xs font-bold text-slate-800 block">
+                {loginMode === 'ADMIN'
+                  ? 'Administrator ID / Username'
+                  : selectedRole === 'PATIENT'
+                  ? 'Patient ID / UHID'
+                  : 'Employee Badge ID'}
               </label>
-              <div className="relative rounded-2xl border border-[#cbd5e1] bg-white transition flex items-center h-12 px-3.5 focus-within:border-[#003d9b] focus-within:ring-2 focus-within:ring-[#003d9b]/15">
-                <span className="material-symbols-outlined text-[#94a3b8] mr-2.5 text-[20px]">
-                  {selectedRole === 'PATIENT' ? 'account_circle' : selectedRole === 'PHARMACIST' ? 'local_pharmacy' : 'badge'}
+              <div className="relative rounded-2xl border border-slate-300 bg-white transition flex items-center h-12 px-3.5 focus-within:border-[#003d9b] focus-within:ring-2 focus-within:ring-[#003d9b]/15">
+                <span className="material-symbols-outlined text-slate-400 mr-2.5 text-[20px]">
+                  {loginMode === 'ADMIN' ? 'admin_panel_settings' : selectedRole === 'PATIENT' ? 'account_circle' : 'badge'}
                 </span>
                 <input
                   id="employee-id"
@@ -416,31 +443,26 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
                   value={employeeId}
                   onChange={(e) => setEmployeeId(e.target.value)}
                   placeholder={
-                    selectedRole === 'PATIENT'
+                    loginMode === 'ADMIN'
+                      ? 'e.g. ADM-9001 or admin@smartmed.org'
+                      : selectedRole === 'PATIENT'
                       ? 'e.g. UHID123456'
-                      : selectedRole === 'DOCTOR'
-                      ? 'e.g. DOC-84729'
-                      : selectedRole === 'PHARMACIST'
-                      ? 'e.g. PH-31405'
-                      : 'e.g. RN-88219'
+                      : 'e.g. DOC-84729'
                   }
-                  className="w-full bg-transparent border-none p-0 text-sm sm:text-base text-[#0f172a] placeholder-[#94a3b8] focus:outline-none"
+                  className="w-full bg-transparent border-none p-0 text-sm font-semibold text-slate-900 placeholder-slate-400 focus:outline-none"
                   required
                 />
               </div>
             </div>
 
-            {/* Secure PIN Field */}
-            <div className="space-y-1.5">
-              <label
-                htmlFor="pin"
-                className="text-xs sm:text-sm font-bold text-[#0f172a] block"
-              >
-                Secure PIN
+            {/* PIN Field */}
+            <div className="space-y-1">
+              <label htmlFor="pin" className="text-xs font-bold text-slate-800 block">
+                {loginMode === 'ADMIN' ? 'Admin Security Passcode / PIN' : 'Terminal Security PIN'}
               </label>
-              <div className="relative rounded-2xl border border-[#cbd5e1] bg-white transition flex items-center h-12 px-3.5 focus-within:border-[#003d9b] focus-within:ring-2 focus-within:ring-[#003d9b]/15">
-                <span className="material-symbols-outlined text-[#94a3b8] mr-2.5 text-[20px]">
-                  pin
+              <div className="relative rounded-2xl border border-slate-300 bg-white transition flex items-center h-12 px-3.5 focus-within:border-[#003d9b] focus-within:ring-2 focus-within:ring-[#003d9b]/15">
+                <span className="material-symbols-outlined text-slate-400 mr-2.5 text-[20px]">
+                  lock
                 </span>
                 <input
                   id="pin"
@@ -451,192 +473,171 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
                     setActualPin(e.target.value);
                   }}
                   placeholder="••••••"
-                  className="w-full bg-transparent border-none p-0 text-sm sm:text-base text-[#0f172a] placeholder-[#94a3b8] tracking-widest focus:outline-none font-mono"
+                  className="w-full bg-transparent border-none p-0 text-sm font-mono font-bold tracking-widest text-slate-900 placeholder-slate-400 focus:outline-none"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPin(!showPin)}
-                  className="text-[#94a3b8] hover:text-[#003d9b] transition p-1 cursor-pointer"
+                  className="text-slate-400 hover:text-[#003d9b] transition p-1 cursor-pointer"
                   title={showPin ? 'Hide PIN' : 'Show PIN'}
                 >
-                  <span className="material-symbols-outlined text-[20px]">
+                  <span className="material-symbols-outlined text-[18px]">
                     {showPin ? 'visibility' : 'visibility_off'}
                   </span>
                 </button>
               </div>
             </div>
 
-            {/* Remember ID & Forgot PIN */}
-            <div className="flex items-center justify-between pt-1">
+            {/* Remember & Forgot PIN */}
+            <div className="flex items-center justify-between pt-0.5">
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
                   checked={rememberId}
                   onChange={(e) => setRememberId(e.target.checked)}
-                  className="w-4 h-4 rounded border-[#cbd5e1] text-[#003d9b] focus:ring-[#003d9b]/20 cursor-pointer"
+                  className="w-4 h-4 rounded border-slate-300 text-[#003d9b] focus:ring-[#003d9b]/20 cursor-pointer"
                 />
-                <span className="text-xs sm:text-sm text-[#475569]">Remember ID</span>
+                <span className="text-xs text-slate-600 font-medium">Remember Device</span>
               </label>
 
               <button
                 type="button"
                 onClick={() => setShowForgotPinModal(true)}
-                className="text-xs sm:text-sm font-bold text-[#003d9b] hover:text-[#0052cc] transition cursor-pointer"
+                className="text-xs font-bold text-[#003d9b] hover:underline cursor-pointer"
               >
-                Forgot PIN?
+                Demo Credentials?
               </button>
             </div>
 
-            {/* Primary Action Button: Authenticate ➔ */}
+            {/* Primary Action Button */}
             <button
               type="submit"
               disabled={isAuthenticating}
-              className={`w-full h-12 sm:h-13 font-bold text-sm sm:text-base rounded-2xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer mt-4 text-white ${
-                selectedRole === 'PHARMACIST'
-                  ? 'bg-[#00687a] hover:bg-[#00505e] shadow-[#00687a]/25'
-                  : 'bg-[#003d9b] hover:bg-[#0052cc] shadow-[#003d9b]/25'
+              className={`w-full h-12 sm:h-13 font-black text-sm sm:text-base rounded-2xl shadow-lg transition flex items-center justify-center gap-2 cursor-pointer mt-2 text-white active:scale-98 ${
+                loginMode === 'ADMIN'
+                  ? 'bg-gradient-to-r from-[#003d9b] via-[#0052cc] to-[#00687a] hover:from-[#002b70] hover:to-[#00505e] shadow-blue-900/30'
+                  : 'bg-slate-900 hover:bg-slate-800 shadow-slate-900/30'
               }`}
             >
               {isAuthenticating ? (
                 <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Authenticating...</span>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Verifying Credentials...</span>
                 </div>
               ) : (
                 <>
-                  <span>Authenticate &amp; Enter Portal</span>
-                  <span className="material-symbols-outlined text-[20px]">login</span>
+                  <span>
+                    {loginMode === 'ADMIN' ? 'Authenticate & Enter Admin Hub' : 'Sign In to Clinical eMAR'}
+                  </span>
+                  <span className="material-symbols-outlined text-[20px]">
+                    {loginMode === 'ADMIN' ? 'arrow_forward' : 'login'}
+                  </span>
                 </>
               )}
             </button>
+
           </form>
 
-          {/* Dynamic Registration Divider based on Active Role */}
-          <div className="w-full flex items-center gap-3 my-5">
-            <div className="h-[1px] flex-1 bg-[#e2e8f0]"></div>
-            <span className="text-[10px] font-bold text-[#64748b] tracking-wider uppercase">
-              {selectedRole === 'DOCTOR'
-                ? 'OR NEW PHYSICIAN'
-                : selectedRole === 'NURSE'
-                ? 'OR NURSING ONBOARDING'
-                : selectedRole === 'PHARMACIST'
-                ? 'OR PHARMACY CREDENTIALING'
-                : 'OR PATIENT ADMISSION'}
+          {/* Quick Staff Enrollment Trigger directly on Login */}
+          <div className="w-full flex items-center gap-3 my-4">
+            <div className="h-[1px] flex-1 bg-slate-200" />
+            <span className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">
+              {loginMode === 'ADMIN' ? 'HOSPITAL STAFF ENROLLMENT' : 'PATIENT REGISTRATION'}
             </span>
-            <div className="h-[1px] flex-1 bg-[#e2e8f0]"></div>
+            <div className="h-[1px] flex-1 bg-slate-200" />
           </div>
 
-          {/* Dynamic Registration Button based on Active Role */}
-          {selectedRole === 'DOCTOR' ? (
+          {loginMode === 'ADMIN' ? (
             <button
               type="button"
-              onClick={() => setShowDoctorRegistrationModal(true)}
-              className="w-full h-12 border-2 border-[#003d9b]/70 hover:bg-[#003d9b]/5 active:scale-[0.99] text-[#003d9b] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2.5 cursor-pointer bg-white shadow-xs"
+              onClick={() => {
+                setEnrollInitialRole('DOCTOR');
+                setShowStaffEnrollModal(true);
+              }}
+              className="w-full h-11 border-2 border-dashed border-[#003d9b]/50 hover:bg-blue-50/60 active:scale-[0.99] text-[#003d9b] font-bold text-xs sm:text-sm rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer bg-white"
             >
-              <span className="material-symbols-outlined text-[22px] text-[#003d9b]">
-                stethoscope
+              <span className="material-symbols-outlined text-[20px] text-[#003d9b]">
+                person_add
               </span>
-              <span>Register New Doctor</span>
-            </button>
-          ) : selectedRole === 'NURSE' ? (
-            <button
-              type="button"
-              onClick={() => setShowDoctorRegistrationModal(true)}
-              className="w-full h-12 border-2 border-[#00687a]/70 hover:bg-[#00687a]/5 active:scale-[0.99] text-[#00687a] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2.5 cursor-pointer bg-white shadow-xs"
-            >
-              <span className="material-symbols-outlined text-[22px] text-[#00687a]">
-                badge
-              </span>
-              <span>Register New Clinician</span>
-            </button>
-          ) : selectedRole === 'PHARMACIST' ? (
-            <button
-              type="button"
-              onClick={() => setShowPharmacistRegistrationModal(true)}
-              className="w-full h-12 border-2 border-[#00687a]/70 hover:bg-teal-50 active:scale-[0.99] text-[#00687a] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2.5 cursor-pointer bg-white shadow-xs"
-            >
-              <span className="material-symbols-outlined text-[22px] text-[#00687a]">
-                local_pharmacy
-              </span>
-              <span>Register New Pharmacist</span>
+              <span>Enroll New Doctor, Nurse, or Staff</span>
             </button>
           ) : (
             <button
               type="button"
               onClick={() => setShowRegistrationModal(true)}
-              className="w-full h-12 border-2 border-[#00687a]/70 hover:bg-[#00687a]/5 active:scale-[0.99] text-[#00687a] font-bold text-sm sm:text-base rounded-2xl transition flex items-center justify-center gap-2.5 cursor-pointer bg-white shadow-xs"
+              className="w-full h-11 border-2 border-slate-300 hover:bg-slate-50 text-slate-700 font-bold text-xs sm:text-sm rounded-2xl transition flex items-center justify-center gap-2 cursor-pointer bg-white"
             >
-              <span className="material-symbols-outlined text-[22px] text-[#00687a]">
+              <span className="material-symbols-outlined text-[20px] text-teal-600">
                 person_add
               </span>
-              <span>Add Patient</span>
+              <span>Register New Patient</span>
             </button>
           )}
 
           {/* Registration Success Notification Banner */}
           {registrationSuccessMessage && (
-            <div className="mt-3 p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs font-bold text-emerald-800 animate-in fade-in">
+            <div className="mt-3 w-full p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-xs font-bold text-emerald-800 animate-in fade-in">
               <span className="material-symbols-outlined text-emerald-600 text-[18px]">check_circle</span>
               <span>{registrationSuccessMessage}</span>
             </div>
           )}
 
-          {/* Security Notice */}
-          <div className="mt-5 flex items-center justify-center gap-1.5 text-xs text-[#64748b]">
-            <span className="material-symbols-outlined text-[16px]">lock</span>
-            <p>End-to-end encrypted connection.</p>
+          {/* HIPAA & TLS Encryption Footer */}
+          <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-slate-400 font-medium">
+            <span className="material-symbols-outlined text-[15px] text-emerald-600">verified_user</span>
+            <span>256-bit TLS Encrypted • HIPAA &amp; NHS Digital Compliant</span>
           </div>
 
         </div>
       </div>
 
-      {/* Footer Links Below Card */}
-      <div className="pb-4 flex justify-center items-center gap-3 text-xs text-[#64748b]">
+      {/* Footer Navigation */}
+      <div className="pb-3 flex justify-center items-center gap-4 text-xs text-slate-400">
         <button
           type="button"
           onClick={() => setShowHelpModal(true)}
-          className="hover:text-[#003d9b] transition"
+          className="hover:text-cyan-300 transition"
         >
-          Help &amp; Support
+          Administrator Support
         </button>
         <span>•</span>
         <button
           type="button"
           onClick={() => setShowHelpModal(true)}
-          className="hover:text-[#003d9b] transition"
+          className="hover:text-cyan-300 transition"
         >
-          Privacy Policy
+          Clinical Security Policy
         </button>
       </div>
 
-      {/* Forgot PIN Modal */}
+      {/* Forgot PIN / Demo Credentials Modal */}
       {showForgotPinModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4 animate-in fade-in">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white text-slate-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-slate-200 space-y-4 animate-in fade-in">
             <div className="flex items-center gap-2 text-[#003d9b] font-bold text-base">
               <span className="material-symbols-outlined">key</span>
-              <span>Clinical Test Credentials</span>
+              <span>Authorized Demo Passcodes</span>
             </div>
             <p className="text-xs text-slate-600 leading-relaxed">
-              Use any preset authorized badge code or click any role tab:
+              Use any preset credential to log in directly:
             </p>
-            <div className="space-y-2 text-xs bg-slate-50 p-3 rounded-2xl border border-slate-200">
-              <div className="flex justify-between">
+            <div className="space-y-2 text-xs bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+              <div className="flex justify-between items-center py-1 border-b border-slate-200">
+                <span className="font-extrabold text-[#003d9b]">Administrator:</span>
+                <span className="font-mono text-slate-900 font-bold">ADM-9001 / 9999</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-slate-200">
                 <span className="font-semibold text-slate-700">Doctor (Sarah Chen):</span>
-                <span className="font-mono text-[#003d9b] font-bold">DOC-84729 / 9999</span>
+                <span className="font-mono text-slate-900 font-bold">DOC-84729 / 9999</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center py-1 border-b border-slate-200">
                 <span className="font-semibold text-slate-700">Nurse (Sarah Jenkins):</span>
-                <span className="font-mono text-[#003d9b] font-bold">RN-88219 / 1234</span>
+                <span className="font-mono text-slate-900 font-bold">RN-88219 / 1234</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center py-1">
                 <span className="font-semibold text-slate-700">Pharmacist (Priya Patel):</span>
                 <span className="font-mono text-[#00687a] font-bold">PH-31405 / 7777</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-slate-700">Patient (Ramesh Kumar):</span>
-                <span className="font-mono text-[#003d9b] font-bold">UHID123456 / 1234</span>
               </div>
             </div>
             <div className="flex justify-end">
@@ -652,20 +653,20 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
         </div>
       )}
 
-      {/* Help Modal */}
+      {/* Security Help Modal */}
       {showHelpModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4 animate-in fade-in">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white text-slate-900 rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4 animate-in fade-in">
             <div className="flex items-center gap-2 text-[#003d9b] font-bold text-base">
-              <span className="material-symbols-outlined">shield</span>
-              <span>SmartMedChart Clinical Security</span>
+              <span className="material-symbols-outlined">security</span>
+              <span>SmartMedChart Enterprise Security</span>
             </div>
             <div className="text-xs text-slate-600 space-y-2 leading-relaxed">
               <p>
-                This terminal is protected with electronic signature logging, role-based access controls (RBAC), and cryptographic audit tracking.
+                Access to this hospital system requires administrator authority or verified clinician credentials.
               </p>
               <p className="font-semibold text-slate-800">
-                Hospital IT Support: ext 4402 • itsupport@hospital.internal
+                Hospital IT Support: Ext 4402 • itsupport@smartmed.org
               </p>
             </div>
             <div className="flex justify-end">
@@ -681,21 +682,15 @@ export const SecureLoginScreen: React.FC<SecureLoginScreenProps> = ({
         </div>
       )}
 
-      {/* Doctor Registration Form Modal */}
-      <DoctorRegistrationModal
-        isOpen={showDoctorRegistrationModal}
-        onClose={() => setShowDoctorRegistrationModal(false)}
-        onRegisterDoctor={handleRegisterDoctor}
+      {/* Universal Staff Enrollment Modal */}
+      <AdminStaffEnrollmentModal
+        isOpen={showStaffEnrollModal}
+        onClose={() => setShowStaffEnrollModal(false)}
+        onEnrollStaff={handleStaffEnrolled}
+        initialRole={enrollInitialRole}
       />
 
-      {/* Pharmacist Registration Form Modal */}
-      <PharmacistRegistrationModal
-        isOpen={showPharmacistRegistrationModal}
-        onClose={() => setShowPharmacistRegistrationModal(false)}
-        onRegisterPharmacist={handleRegisterPharmacist}
-      />
-
-      {/* Patient Registration Form Modal */}
+      {/* Patient Registration Modal */}
       <PatientRegistrationModal
         isOpen={showRegistrationModal}
         onClose={() => setShowRegistrationModal(false)}

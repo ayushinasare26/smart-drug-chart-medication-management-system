@@ -31,12 +31,15 @@ import { InfusionManagementModal } from './components/InfusionManagementModal';
 import { PharmacyReviewDrawer } from './components/PharmacyReviewDrawer';
 import { PrintDrugChartModal } from './components/PrintDrugChartModal';
 import { PatientRegistrationModal } from './components/PatientRegistrationModal';
+import { AdministratorPortalView } from './components/AdministratorPortalView';
+import { AdminStaffEnrollmentModal } from './components/AdminStaffEnrollmentModal';
 
 export default function App() {
   // Authentication State (Starts at Secure Login screen as designed)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false); // Starts at Secure Login screen
+  const [isAdminPortalActive, setIsAdminPortalActive] = useState<boolean>(true); // When true and authenticated as Admin, renders Admin Portal
   const [staffList, setStaffList] = useState<ClinicalStaff[]>(CLINICAL_STAFF);
-  const [currentStaff, setCurrentStaff] = useState<ClinicalStaff>(CLINICAL_STAFF[0]); // Default to first doctor (Dr. Sarah Chen)
+  const [currentStaff, setCurrentStaff] = useState<ClinicalStaff>(CLINICAL_STAFF[0]); // Default to first staff (Dr. Evelyn Vance, Admin)
 
 // Navigation Tabs: 'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Analysis' | 'Profile' | 'Pharmacy'
 const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Charts' | 'Analysis' | 'Profile' | 'Pharmacy'>('Home');
@@ -225,11 +228,15 @@ const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Char
     showToast(`Clarification query flagged to prescriber: "${reason}"`, 'ALERT');
   };
 
-  // If not authenticated, render the Secure Login Screen
+  // If not authenticated, render the Administrator / Secure Login Screen
   if (!isAuthenticated) {
     return (
       <SecureLoginScreen
         staffList={staffList}
+        onRegisterStaff={(newStaff) => {
+          setStaffList((prev) => [newStaff, ...prev]);
+          showToast(`${newStaff.name} (${newStaff.badgeNumber}) enrolled into Hospital Directory.`, 'SUCCESS');
+        }}
         onRegisterDoctor={(newDoctor) => {
           setStaffList((prev) => [newDoctor, ...prev]);
           showToast(`${newDoctor.name} (${newDoctor.badgeNumber}) registered to Physician Directory.`, 'SUCCESS');
@@ -251,7 +258,50 @@ const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Char
             return exists ? prev : [staff, ...prev];
           });
           setIsAuthenticated(true);
-          // Role-based landing page
+          
+          if (staff.role === 'ADMIN') {
+            setIsAdminPortalActive(true);
+          } else {
+            setIsAdminPortalActive(false);
+            if (staff.role === 'PATIENT') {
+              setActiveTab('Patients');
+            } else if (staff.role === 'NURSE' || staff.role === 'CHARGE_NURSE') {
+              setActiveTab('Tasks');
+            } else if (staff.role === 'PHARMACIST') {
+              setActiveTab('Pharmacy');
+            } else {
+              setActiveTab('Home');
+            }
+          }
+          showToast(`Welcome, ${staff.name}. Session verified.`);
+        }}
+      />
+    );
+  }
+
+  // If authenticated and Administrator Portal is active, render Administrator Hub
+  if (isAdminPortalActive && currentStaff.role === 'ADMIN') {
+    return (
+      <AdministratorPortalView
+        currentStaff={currentStaff}
+        staffList={staffList}
+        onEnrollStaff={(newStaff) => {
+          setStaffList((prev) => [newStaff, ...prev]);
+          showToast(`${newStaff.name} (${newStaff.badgeNumber}) enrolled to Hospital Directory.`, 'SUCCESS');
+        }}
+        onUpdateStaff={(updatedStaff) => {
+          setStaffList((prev) => prev.map((s) => (s.id === updatedStaff.id ? updatedStaff : s)));
+          if (currentStaff.id === updatedStaff.id) {
+            setCurrentStaff(updatedStaff);
+          }
+        }}
+        onDeleteStaff={(staffId) => {
+          setStaffList((prev) => prev.filter((s) => s.id !== staffId));
+          showToast('Staff profile deactivated from directory.', 'INFO');
+        }}
+        onLaunchWorkstationAsStaff={(staff) => {
+          setCurrentStaff(staff);
+          setIsAdminPortalActive(false);
           if (staff.role === 'PATIENT') {
             setActiveTab('Patients');
           } else if (staff.role === 'NURSE' || staff.role === 'CHARGE_NURSE') {
@@ -261,7 +311,17 @@ const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Char
           } else {
             setActiveTab('Home');
           }
-          showToast(`Welcome, ${staff.name}. Session verified.`);
+          showToast(`Workstation launched as ${staff.name} (${staff.badgeNumber}).`, 'SUCCESS');
+        }}
+        onLaunchMainEMAR={() => {
+          setIsAdminPortalActive(false);
+          setActiveTab('Home');
+          showToast('Entering SmartMedChart eMAR with Admin Supervision privileges.', 'INFO');
+        }}
+        onSignOut={() => {
+          setIsAuthenticated(false);
+          setIsAdminPortalActive(true);
+          showToast('Administrator session ended securely.', 'INFO');
         }}
       />
     );
@@ -325,6 +385,28 @@ const [activeTab, setActiveTab] = useState<'Home' | 'Patients' | 'Tasks' | 'Char
         {/* Header Right Actions */}
         <div className="flex items-center gap-3 sm:gap-4">
           
+          {/* Admin Hub Direct Navigation Button */}
+          <button
+            onClick={() => {
+              const admin = staffList.find((s) => s.role === 'ADMIN') || {
+                id: 'staff-admin-1',
+                name: 'Dr. Evelyn Vance, MD',
+                role: 'ADMIN' as const,
+                badgeNumber: 'ADM-9001',
+                department: 'Hospital Administration & Executive Directorate',
+                pin: '9999',
+              };
+              setCurrentStaff(admin);
+              setIsAdminPortalActive(true);
+              showToast('Switched to Hospital Administrator Hub.', 'INFO');
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-slate-700 rounded-xl text-xs font-bold transition cursor-pointer shadow-xs active:scale-95"
+            title="Hospital Administration & Staff Enrollment Hub"
+          >
+            <span className="material-symbols-outlined text-[16px] text-cyan-300">admin_panel_settings</span>
+            <span className="hidden sm:inline">Admin Hub</span>
+          </button>
+
           {/* Pharmacy Portal Direct Shortcut Button - Only for clinical staff */}
           {currentStaff.role !== 'PATIENT' && (
             <button

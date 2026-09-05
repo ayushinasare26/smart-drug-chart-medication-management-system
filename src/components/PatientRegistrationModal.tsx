@@ -102,6 +102,7 @@ export const PatientRegistrationModal: React.FC<PatientRegistrationModalProps> =
       dob: dob,
       age: calculatedAge,
       gender: gender,
+      weight: '72 kg',
       ward: ward,
       roomBed: roomBed.trim(),
       bloodGroup: bloodGroup,

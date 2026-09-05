@@ -164,7 +164,7 @@ export const CLINICAL_PATIENTS: PatientProfile[] = [
         timing: '22:00',
         status: 'Completed',
         startDate: 'Oct 24, 2023',
-        category: 'Completed',
+        category: 'REGULAR',
         instructions: 'Check capillary blood glucose prior to administration.',
         prescribedBy: 'Dr. Sarah Chen, MD (Internal Medicine)',
         prescribedDate: 'Oct 24, 2023',
